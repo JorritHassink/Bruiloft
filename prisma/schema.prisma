@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Invitation {
+  id        String   @id @default(cuid())
+  token     String   @unique @default(cuid())
+  name      String   // Naam op de uitnodiging (bijv. "Jan & Petra")
+  type      String   // "dag" of "avond"
+  email     String?
+  maxGuests Int      @default(2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rsvp Rsvp?
+}
+
+model Rsvp {
+  id             String   @id @default(cuid())
+  invitationId   String   @unique
+  invitation     Invitation @relation(fields: [invitationId], references: [id])
+  attending      Boolean
+  guestCount     Int      @default(1)
+  guestNames     String?  // Komma-gescheiden namen van gasten
+  dietaryNotes   String?  // Dieetwensen / allergieën
+  remarks        String?  // Overige opmerkingen
+  submittedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
