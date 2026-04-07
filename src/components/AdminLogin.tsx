@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
-export default function AdminLogin() {
+interface AdminLoginProps {
+  onLogin: () => void;
+}
+
+export default function AdminLogin({ onLogin }: AdminLoginProps) {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -12,17 +18,16 @@ export default function AdminLogin() {
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/admin/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
-    if (res.ok) {
-      window.location.reload();
-    } else {
-      setError("Onjuist wachtwoord");
+    if (authError) {
+      setError("Onjuiste inloggegevens");
       setLoading(false);
+    } else {
+      onLogin();
     }
   }
 
@@ -37,20 +42,29 @@ export default function AdminLogin() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-primary-dark mb-2">
+              E-mail
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              className="w-full rounded-xl border-2 border-gold-light/50 px-4 py-3 text-primary-dark bg-white focus:border-gold focus:outline-none transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary-dark mb-2">
               Wachtwoord
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
               className="w-full rounded-xl border-2 border-gold-light/50 px-4 py-3 text-primary-dark bg-white focus:border-gold focus:outline-none transition-colors"
             />
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
           <button
             type="submit"

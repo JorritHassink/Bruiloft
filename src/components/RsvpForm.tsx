@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface RsvpFormProps {
   invitationId: string;
-  token: string;
   maxGuests: number;
 }
 
-export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormProps) {
+export default function RsvpForm({ invitationId, maxGuests }: RsvpFormProps) {
   const [attending, setAttending] = useState<boolean | null>(null);
   const [guestCount, setGuestCount] = useState(1);
   const [guestNames, setGuestNames] = useState("");
@@ -26,25 +26,16 @@ export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormPro
     setError("");
 
     try {
-      const res = await fetch("/api/rsvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invitationId,
-          token,
-          attending,
-          guestCount: attending ? guestCount : 0,
-          guestNames: attending ? guestNames : "",
-          dietaryNotes: attending ? dietaryNotes : "",
-          remarks,
-        }),
+      const { error: dbError } = await supabase.from("rsvps").insert({
+        invitation_id: invitationId,
+        attending,
+        guest_count: attending ? guestCount : 0,
+        guest_names: attending ? guestNames || null : null,
+        dietary_notes: attending ? dietaryNotes || null : null,
+        remarks: remarks || null,
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Er ging iets mis");
-      }
-
+      if (dbError) throw new Error(dbError.message);
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Er ging iets mis");
@@ -73,7 +64,6 @@ export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormPro
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Attending toggle */}
       <div>
         <label className="block text-sm font-medium text-primary-dark mb-3">
           Kunnen jullie erbij zijn?
@@ -106,7 +96,6 @@ export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormPro
 
       {attending === true && (
         <>
-          {/* Guest count */}
           <div>
             <label className="block text-sm font-medium text-primary-dark mb-2">
               Met hoeveel personen?
@@ -124,7 +113,6 @@ export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormPro
             </select>
           </div>
 
-          {/* Guest names */}
           <div>
             <label className="block text-sm font-medium text-primary-dark mb-2">
               Namen van de gasten
@@ -138,7 +126,6 @@ export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormPro
             />
           </div>
 
-          {/* Dietary notes */}
           <div>
             <label className="block text-sm font-medium text-primary-dark mb-2">
               Dieetwensen of allergieën
@@ -154,7 +141,6 @@ export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormPro
         </>
       )}
 
-      {/* Remarks */}
       {attending !== null && (
         <div>
           <label className="block text-sm font-medium text-primary-dark mb-2">
@@ -170,9 +156,7 @@ export default function RsvpForm({ invitationId, token, maxGuests }: RsvpFormPro
         </div>
       )}
 
-      {error && (
-        <p className="text-red-500 text-sm text-center">{error}</p>
-      )}
+      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
       {attending !== null && (
         <button

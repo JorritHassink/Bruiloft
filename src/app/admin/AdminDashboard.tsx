@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+import QRCode from "qrcode";
 
 interface Rsvp {
   id: string;
   attending: boolean;
-  guestCount: number;
-  guestNames: string | null;
-  dietaryNotes: string | null;
+  guest_count: number;
+  guest_names: string | null;
+  dietary_notes: string | null;
   remarks: string | null;
-  submittedAt: string;
+  created_at: string;
 }
 
 interface Invitation {
@@ -18,27 +20,30 @@ interface Invitation {
   name: string;
   type: string;
   email: string | null;
-  maxGuests: number;
-  createdAt: string;
-  rsvp: Rsvp | null;
+  max_guests: number;
+  created_at: string;
+  rsvps: Rsvp[];
 }
 
-export default function AdminPage() {
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
+
+export default function AdminDashboard() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [qrModal, setQrModal] = useState<{ qr: string; url: string; name: string } | null>(null);
 
-  // New invitation form
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<"dag" | "avond">("dag");
   const [newEmail, setNewEmail] = useState("");
   const [newMaxGuests, setNewMaxGuests] = useState(2);
 
   const fetchInvitations = useCallback(async () => {
-    const res = await fetch("/api/admin/invitations");
-    const data = await res.json();
-    setInvitations(data);
+    const { data } = await supabase
+      .from("invitations")
+      .select("*, rsvps(*)")
+      .order("created_at", { ascending: false });
+    setInvitations(data || []);
     setLoading(false);
   }, []);
 
@@ -48,15 +53,11 @@ export default function AdminPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/admin/invitations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newName,
-        type: newType,
-        email: newEmail || null,
-        maxGuests: newMaxGuests,
-      }),
+    await supabase.from("invitations").insert({
+      name: newName,
+      type: newType,
+      email: newEmail || null,
+      max_guests: newMaxGuests,
     });
     setNewName("");
     setNewEmail("");
@@ -67,32 +68,39 @@ export default function AdminPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Weet je zeker dat je deze uitnodiging wilt verwijderen?")) return;
-    await fetch(`/api/admin/invitations/${id}`, { method: "DELETE" });
+    await supabase.from("rsvps").delete().eq("invitation_id", id);
+    await supabase.from("invitations").delete().eq("id", id);
     fetchInvitations();
   }
 
   async function handleShowQr(token: string, name: string) {
-    const res = await fetch(`/api/admin/qrcode/${token}`);
-    const data = await res.json();
-    setQrModal({ ...data, name });
+    const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
+    const qr = await QRCode.toDataURL(rsvpUrl, {
+      width: 400,
+      margin: 2,
+      color: { dark: "#2c2c2c", light: "#faf8f5" },
+    });
+    setQrModal({ qr, url: rsvpUrl, name });
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
   }
 
   const dagInvitations = invitations.filter((i) => i.type === "dag");
   const avondInvitations = invitations.filter((i) => i.type === "avond");
 
+  const getRsvp = (inv: Invitation) => inv.rsvps?.[0] || null;
+
   const stats = {
     totalInvitations: invitations.length,
-    totalResponded: invitations.filter((i) => i.rsvp).length,
-    totalAttending: invitations.filter((i) => i.rsvp?.attending).length,
-    totalGuests: invitations
-      .filter((i) => i.rsvp?.attending)
-      .reduce((sum, i) => sum + (i.rsvp?.guestCount || 0), 0),
+    totalResponded: invitations.filter((i) => getRsvp(i)).length,
     dagGuests: dagInvitations
-      .filter((i) => i.rsvp?.attending)
-      .reduce((sum, i) => sum + (i.rsvp?.guestCount || 0), 0),
+      .filter((i) => getRsvp(i)?.attending)
+      .reduce((sum, i) => sum + (getRsvp(i)?.guest_count || 0), 0),
     avondGuests: avondInvitations
-      .filter((i) => i.rsvp?.attending)
-      .reduce((sum, i) => sum + (i.rsvp?.guestCount || 0), 0),
+      .filter((i) => getRsvp(i)?.attending)
+      .reduce((sum, i) => sum + (getRsvp(i)?.guest_count || 0), 0),
   };
 
   if (loading) {
@@ -105,7 +113,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-white border-b border-gold-light/50">
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
           <div>
@@ -120,10 +127,7 @@ export default function AdminPage() {
               + Uitnodiging toevoegen
             </button>
             <button
-              onClick={async () => {
-                await fetch("/api/admin/auth", { method: "DELETE" });
-                window.location.reload();
-              }}
+              onClick={handleLogout}
               className="px-5 py-2.5 border border-gold-light/50 text-primary rounded-xl text-sm hover:bg-cream transition-colors"
             >
               Uitloggen
@@ -148,7 +152,7 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* Add invitation form */}
+        {/* Add form */}
         {showForm && (
           <div className="bg-white rounded-xl border border-gold-light/50 p-6">
             <h2 className="font-serif text-lg text-primary-dark mb-4">Nieuwe uitnodiging</h2>
@@ -215,7 +219,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Invitation tables */}
+        {/* Tables */}
         {[
           { title: "Daggasten", items: dagInvitations },
           { title: "Avondgasten", items: avondInvitations },
@@ -243,55 +247,58 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gold-light/20">
-                    {items.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-cream/30 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-primary-dark">{inv.name}</div>
-                          {inv.email && <div className="text-xs text-primary-light">{inv.email}</div>}
-                        </td>
-                        <td className="px-6 py-4">
-                          {inv.rsvp ? (
-                            <span
-                              className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-                                inv.rsvp.attending
-                                  ? "bg-sage-light/50 text-sage"
-                                  : "bg-blush/50 text-primary"
-                              }`}
-                            >
-                              {inv.rsvp.attending ? "Komt" : "Komt niet"}
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-gold-light/30 text-primary-light">
-                              Wacht op reactie
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-primary">
-                          {inv.rsvp?.attending
-                            ? `${inv.rsvp.guestCount} ${inv.rsvp.guestNames ? `(${inv.rsvp.guestNames})` : ""}`
-                            : "—"}
-                        </td>
-                        <td className="px-6 py-4 text-primary text-xs">
-                          {inv.rsvp?.dietaryNotes || "—"}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleShowQr(inv.token, inv.name)}
-                              className="px-3 py-1.5 text-xs bg-cream border border-gold-light/50 text-primary-dark rounded-lg hover:bg-gold-light/30 transition-colors"
-                            >
-                              QR
-                            </button>
-                            <button
-                              onClick={() => handleDelete(inv.id)}
-                              className="px-3 py-1.5 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-                            >
-                              Verwijder
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {items.map((inv) => {
+                      const rsvp = getRsvp(inv);
+                      return (
+                        <tr key={inv.id} className="hover:bg-cream/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-primary-dark">{inv.name}</div>
+                            {inv.email && <div className="text-xs text-primary-light">{inv.email}</div>}
+                          </td>
+                          <td className="px-6 py-4">
+                            {rsvp ? (
+                              <span
+                                className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
+                                  rsvp.attending
+                                    ? "bg-sage-light/50 text-sage"
+                                    : "bg-blush/50 text-primary"
+                                }`}
+                              >
+                                {rsvp.attending ? "Komt" : "Komt niet"}
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-gold-light/30 text-primary-light">
+                                Wacht op reactie
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-primary">
+                            {rsvp?.attending
+                              ? `${rsvp.guest_count} ${rsvp.guest_names ? `(${rsvp.guest_names})` : ""}`
+                              : "—"}
+                          </td>
+                          <td className="px-6 py-4 text-primary text-xs">
+                            {rsvp?.dietary_notes || "—"}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleShowQr(inv.token, inv.name)}
+                                className="px-3 py-1.5 text-xs bg-cream border border-gold-light/50 text-primary-dark rounded-lg hover:bg-gold-light/30 transition-colors"
+                              >
+                                QR
+                              </button>
+                              <button
+                                onClick={() => handleDelete(inv.id)}
+                                className="px-3 py-1.5 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                              >
+                                Verwijder
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -300,7 +307,7 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* QR Code Modal */}
+      {/* QR Modal */}
       {qrModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
           <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center">

@@ -1,26 +1,87 @@
-import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import RsvpForm from "@/components/RsvpForm";
+import { Suspense } from "react";
 
-export default async function RsvpPage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
-  const { token } = await params;
+interface Invitation {
+  id: string;
+  token: string;
+  name: string;
+  type: string;
+  max_guests: number;
+}
 
-  const invitation = await prisma.invitation.findUnique({
-    where: { token },
-    include: { rsvp: true },
-  });
+interface Rsvp {
+  attending: boolean;
+  guest_count: number;
+  dietary_notes: string | null;
+}
 
-  if (!invitation) {
-    notFound();
+function RsvpContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("t");
+
+  const [invitation, setInvitation] = useState<Invitation | null>(null);
+  const [rsvp, setRsvp] = useState<Rsvp | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      if (!token) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      const { data: inv } = await supabase
+        .from("invitations")
+        .select("*")
+        .eq("token", token)
+        .single();
+
+      if (!inv) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      setInvitation(inv);
+
+      const { data: rsvpData } = await supabase
+        .from("rsvps")
+        .select("*")
+        .eq("invitation_id", inv.id)
+        .single();
+
+      if (rsvpData) setRsvp(rsvpData);
+      setLoading(false);
+    }
+
+    load();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-primary-light">Laden...</p>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-primary-light">Uitnodiging niet gevonden.</p>
+      </div>
+    );
   }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-cream via-background to-blush/30">
-      {/* Header */}
       <div className="pt-16 pb-8 text-center px-6">
         <p className="text-sm uppercase tracking-[0.3em] text-primary-light mb-4">
           Bruiloft
@@ -35,25 +96,23 @@ export default async function RsvpPage({
         </div>
       </div>
 
-      {/* Card */}
       <div className="max-w-lg mx-auto px-6 pb-16">
         <div className="bg-white rounded-2xl shadow-lg shadow-primary/5 border border-gold-light/50 p-8 md:p-10">
-          {/* Greeting */}
           <div className="text-center mb-8">
             <h2 className="font-serif text-2xl md:text-3xl text-primary-dark mb-2">
-              Beste {invitation.name}
+              Beste {invitation!.name}
             </h2>
             <p className="text-primary">
-              {invitation.type === "dag"
+              {invitation!.type === "dag"
                 ? "Wat fijn dat jullie erbij zijn! Jullie zijn uitgenodigd voor de hele dag."
                 : "Wat fijn dat jullie erbij zijn! Jullie zijn uitgenodigd voor het avondfeest."}
             </p>
             <div className="mt-3 inline-block px-3 py-1 rounded-full text-xs uppercase tracking-wider bg-sage-light/50 text-sage">
-              {invitation.type === "dag" ? "Daggast" : "Avondgast"}
+              {invitation!.type === "dag" ? "Daggast" : "Avondgast"}
             </div>
           </div>
 
-          {invitation.rsvp ? (
+          {rsvp ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-sage-light/50 flex items-center justify-center">
                 <svg className="w-8 h-8 text-sage" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -61,14 +120,14 @@ export default async function RsvpPage({
                 </svg>
               </div>
               <h3 className="font-serif text-xl text-primary-dark mb-2">
-                {invitation.rsvp.attending
+                {rsvp.attending
                   ? "Jullie zijn aangemeld!"
                   : "Jammer dat jullie er niet bij kunnen zijn"}
               </h3>
-              {invitation.rsvp.attending && (
+              {rsvp.attending && (
                 <p className="text-primary text-sm">
-                  {invitation.rsvp.guestCount} {invitation.rsvp.guestCount === 1 ? "persoon" : "personen"}
-                  {invitation.rsvp.dietaryNotes && ` — Dieetwensen: ${invitation.rsvp.dietaryNotes}`}
+                  {rsvp.guest_count} {rsvp.guest_count === 1 ? "persoon" : "personen"}
+                  {rsvp.dietary_notes && ` — Dieetwensen: ${rsvp.dietary_notes}`}
                 </p>
               )}
               <p className="text-primary-light text-sm mt-4 italic">
@@ -77,20 +136,30 @@ export default async function RsvpPage({
             </div>
           ) : (
             <RsvpForm
-              invitationId={invitation.id}
-              token={invitation.token}
-              maxGuests={invitation.maxGuests}
+              invitationId={invitation!.id}
+              maxGuests={invitation!.max_guests}
             />
           )}
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="py-8 bg-cream text-center">
         <p className="text-sm text-primary-light tracking-wide">
           J & R — 02.07.2027
         </p>
       </footer>
     </main>
+  );
+}
+
+export default function RsvpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-primary-light">Laden...</p>
+      </div>
+    }>
+      <RsvpContent />
+    </Suspense>
   );
 }
