@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Jorrit & Renee — 2 Juli 2027",
-  description: "Wij gaan trouwen! RSVP voor onze bruiloft op 2 juli 2027.",
+  description: "Wij gaan trouwen! Vier deze bijzondere dag met ons mee.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

@@ -14,25 +14,19 @@ export default function AdminPage() {
       setAuthenticated(!!session);
       setLoading(false);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthenticated(!!session);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-primary-light">Laden...</p>
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <p className="text-text-muted font-sans text-sm">Laden...</p>
       </div>
     );
   }
 
-  if (!authenticated) {
-    return <AdminLogin onLogin={() => setAuthenticated(true)} />;
-  }
-
-  return <AdminDashboard />;
+  return authenticated ? <AdminDashboard /> : <AdminLogin onLogin={() => setAuthenticated(true)} />;
 }

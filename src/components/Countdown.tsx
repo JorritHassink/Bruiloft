@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 const WEDDING_DATE = new Date("2027-07-02T14:00:00");
 
@@ -34,16 +35,25 @@ export default function Countdown() {
   ];
 
   return (
-    <div className="flex gap-6 md:gap-10 justify-center">
-      {items.map((item) => (
-        <div key={item.label} className="text-center">
-          <div className="font-serif text-4xl md:text-6xl text-primary-dark font-light">
-            {mounted ? String(item.value).padStart(2, "0") : "--"}
+    <div className="flex justify-center gap-4 md:gap-8">
+      {items.map((item, i) => (
+        <motion.div
+          key={item.label}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: i * 0.1 }}
+          className="text-center"
+        >
+          <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-bg-card border border-gold-light/40 shadow-sm flex items-center justify-center mb-2">
+            <span className="font-serif text-2xl md:text-4xl font-light text-text">
+              {mounted ? String(item.value).padStart(2, "0") : "--"}
+            </span>
           </div>
-          <div className="text-xs md:text-sm uppercase tracking-[0.2em] text-primary mt-2">
+          <span className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-text-muted font-sans">
             {item.label}
-          </div>
-        </div>
+          </span>
+        </motion.div>
       ))}
     </div>
   );

@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
-interface AdminLoginProps {
-  onLogin: () => void;
-}
-
-export default function AdminLogin({ onLogin }: AdminLoginProps) {
+export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,11 +15,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
     setLoading(true);
     setError("");
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
       setError("Onjuiste inloggegevens");
       setLoading(false);
@@ -31,50 +24,42 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
     }
   }
 
+  const inputClass =
+    "w-full rounded-xl border border-gold-light/40 bg-bg px-4 py-3 text-text placeholder:text-text-muted/60 focus:border-rose-light focus:ring-1 focus:ring-rose-light/30 focus:outline-none transition-all font-sans text-sm";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cream via-background to-blush/30 px-6">
-      <div className="bg-white rounded-2xl shadow-lg shadow-primary/5 border border-gold-light/50 p-8 md:p-10 max-w-sm w-full">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cream via-bg to-bg-warm px-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-bg-card rounded-3xl shadow-lg shadow-rose/5 border border-gold-light/30 p-8 md:p-10 max-w-sm w-full"
+      >
         <div className="text-center mb-8">
-          <h1 className="font-serif text-2xl text-primary-dark mb-2">Admin</h1>
-          <p className="text-sm text-primary-light">Jorrit & Renee — 2 Juli 2027</p>
+          <h1 className="font-serif text-3xl text-text mb-1">Admin</h1>
+          <p className="text-sm text-text-muted font-sans">Jorrit & Renee — 2 Juli 2027</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-primary-dark mb-2">
-              E-mail
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoFocus
-              className="w-full rounded-xl border-2 border-gold-light/50 px-4 py-3 text-primary-dark bg-white focus:border-gold focus:outline-none transition-colors"
-            />
+            <label className="block text-sm font-sans font-medium text-text mb-2">E-mail</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-primary-dark mb-2">
-              Wachtwoord
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border-2 border-gold-light/50 px-4 py-3 text-primary-dark bg-white focus:border-gold focus:outline-none transition-colors"
-            />
+            <label className="block text-sm font-sans font-medium text-text mb-2">Wachtwoord</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
           </div>
-
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-6 rounded-xl bg-primary text-white font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-3.5 px-6 rounded-xl bg-rose text-white font-sans font-medium text-sm hover:bg-rose-dark transition-colors disabled:opacity-50"
           >
             {loading ? "Laden..." : "Inloggen"}
-          </button>
+          </motion.button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }

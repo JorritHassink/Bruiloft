@@ -1,36 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lato:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@300;400;500&display=swap');
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #faf8f5;
-  --color-foreground: #2c2c2c;
-  --color-primary: #8b7355;
-  --color-primary-light: #c4a87c;
-  --color-primary-dark: #6b5640;
-  --color-accent: #d4a574;
-  --color-cream: #f5f0e8;
-  --color-sage: #a8b5a0;
-  --color-sage-light: #d4ddd0;
-  --color-blush: #e8d5c4;
-  --color-gold: #c9a96e;
-  --color-gold-light: #e8d9b8;
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-sans: 'Lato', Arial, sans-serif;
+  --color-bg: #fdfbf7;
+  --color-bg-warm: #f8f3eb;
+  --color-bg-card: #ffffff;
+  --color-text: #3d3229;
+  --color-text-light: #8a7e72;
+  --color-text-muted: #b5a99a;
+  --color-rose: #c4967a;
+  --color-rose-light: #e8cfc0;
+  --color-rose-dark: #a67a60;
+  --color-blush: #f0ddd2;
+  --color-blush-light: #f7ece5;
+  --color-sage: #94a88a;
+  --color-sage-light: #d4dece;
+  --color-sage-dark: #6d8260;
+  --color-gold: #c4a265;
+  --color-gold-light: #e5d5b0;
+  --color-gold-muted: #d4c49e;
+  --color-cream: #f5efe6;
+  --color-linen: #ede6da;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Jost', system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: 'Lato', Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Jost', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Cormorant Garamond', Georgia, serif;
 }
 
-.ornament::before,
-.ornament::after {
-  content: '—';
-  margin: 0 0.75rem;
-  color: var(--color-gold);
+::selection {
+  background: var(--color-rose-light);
+  color: var(--color-text);
+}
+
+.floral-divider {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='30' viewBox='0 0 200 30'%3E%3Cpath d='M0 15 Q25 0 50 15 Q75 30 100 15 Q125 0 150 15 Q175 30 200 15' fill='none' stroke='%23c4a265' stroke-width='0.8' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  height: 30px;
 }
