@@ -74,7 +74,8 @@ export default function AdminDashboard() {
 
   const dagInvitations = invitations.filter((i) => i.type === "dag");
   const avondInvitations = invitations.filter((i) => i.type === "avond");
-  const getRsvp = (inv: Invitation) => inv.rsvps?.[0] || null;
+  const getRsvp = (inv: Invitation) =>
+    Array.isArray(inv.rsvps) ? inv.rsvps[0] || null : inv.rsvps || null;
 
   const stats = {
     total: invitations.length,
