@@ -21,37 +21,6 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
   );
 }
 
-function TimelineItem({
-  time,
-  title,
-  description,
-  icon,
-  index,
-}: {
-  time: string;
-  title: string;
-  description: string;
-  icon: string;
-  index: number;
-}) {
-  return (
-    <FadeIn delay={index * 0.15} className="flex gap-6 items-start">
-      <div className="flex flex-col items-center">
-        <div className="w-12 h-12 rounded-full bg-blush-light border border-rose-light/50 flex items-center justify-center text-xl shrink-0">
-          {icon}
-        </div>
-        <div className="w-px h-full bg-gradient-to-b from-rose-light/50 to-transparent min-h-[40px]" />
-      </div>
-      <div className="pb-10">
-        <span className="text-xs font-sans font-medium uppercase tracking-[0.2em] text-rose">
-          {time}
-        </span>
-        <h3 className="font-serif text-xl md:text-2xl text-text mt-1 mb-1">{title}</h3>
-        <p className="text-text-light text-sm leading-relaxed">{description}</p>
-      </div>
-    </FadeIn>
-  );
-}
 
 export default function Home() {
   return (
@@ -168,54 +137,40 @@ export default function Home() {
 
       {/* ── Programma ── */}
       <section className="py-24 md:py-32 px-6 bg-bg">
-        <div className="max-w-xl mx-auto">
+        <div className="max-w-2xl mx-auto text-center">
           <SectionTitle subtitle="Het programma">
             De mooiste dag
           </SectionTitle>
-          <div className="mt-8">
-            <TimelineItem
-              index={0}
-              time="13:30"
-              title="Ontvangst"
-              description="Welkom! Geniet van een drankje terwijl wij ons klaarmaken voor de ceremonie."
-              icon="🥂"
-            />
-            <TimelineItem
-              index={1}
-              time="14:00"
-              title="Ceremonie"
-              description="Het moment waar het allemaal om draait — wij geven elkaar het jawoord."
-              icon="💍"
-            />
-            <TimelineItem
-              index={2}
-              time="15:00"
-              title="Receptie & Toast"
-              description="Proosten op de liefde met een heerlijke receptie en felicitaties."
-              icon="🍾"
-            />
-            <TimelineItem
-              index={3}
-              time="17:30"
-              title="Diner"
-              description="Een feestelijk diner waar we samen genieten van heerlijke gerechten."
-              icon="🍽️"
-            />
-            <TimelineItem
-              index={4}
-              time="20:30"
-              title="Avondfeest"
-              description="Tijd om te dansen! De avondgasten sluiten zich bij ons aan voor een onvergetelijk feest."
-              icon="🎶"
-            />
-            <TimelineItem
-              index={5}
-              time="00:00"
-              title="Afsluiting"
-              description="Een prachtige dag wordt afgesloten met de mooiste herinneringen."
-              icon="✨"
-            />
-          </div>
+          <FadeIn delay={0.2}>
+            <div className="bg-bg-card rounded-3xl border border-gold-light/30 p-8 md:p-12 shadow-sm">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-blush-light/40 flex items-center justify-center text-3xl">
+                🥂
+              </div>
+              <p className="text-lg md:text-xl text-text-light leading-relaxed font-light mb-6">
+                Een dag vol liefde, lachen en mooie momenten — van een
+                ontroerende ceremonie tot een onvergetelijk feest.
+              </p>
+              <div className="grid grid-cols-3 gap-4 mt-8">
+                {[
+                  { icon: "💍", label: "Ceremonie" },
+                  { icon: "🍽️", label: "Diner" },
+                  { icon: "🎶", label: "Feest" },
+                ].map((item, i) => (
+                  <FadeIn key={item.label} delay={0.3 + i * 0.1}>
+                    <div className="text-center">
+                      <div className="text-2xl mb-2">{item.icon}</div>
+                      <p className="text-xs uppercase tracking-[0.15em] text-text-muted font-sans">{item.label}</p>
+                    </div>
+                  </FadeIn>
+                ))}
+              </div>
+              <div className="mt-8 pt-6 border-t border-linen">
+                <p className="text-sm text-text-muted italic">
+                  Het volledige programma met tijden ontvangen jullie met de uitnodiging
+                </p>
+              </div>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
@@ -237,17 +192,9 @@ export default function Home() {
                 De exacte locatie maken we binnenkort bekend.
                 Houd je uitnodiging in de gaten!
               </p>
-              <div className="mt-8 pt-8 border-t border-linen">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-text-muted font-sans mb-1">Datum</p>
-                    <p className="font-serif text-lg text-text">2 Juli 2027</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-text-muted font-sans mb-1">Aanvang</p>
-                    <p className="font-serif text-lg text-text">13:30 uur</p>
-                  </div>
-                </div>
+              <div className="mt-8 pt-8 border-t border-linen text-center">
+                <p className="text-xs uppercase tracking-[0.2em] text-text-muted font-sans mb-1">Datum</p>
+                <p className="font-serif text-lg text-text">2 Juli 2027</p>
               </div>
             </div>
           </FadeIn>
