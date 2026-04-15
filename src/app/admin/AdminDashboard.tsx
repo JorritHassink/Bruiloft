@@ -32,6 +32,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [qrModal, setQrModal] = useState<{ qr: string; url: string; name: string } | null>(null);
+  const [emailModal, setEmailModal] = useState<{ to: string; name: string } | null>(null);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<"dag" | "avond">("dag");
@@ -61,6 +67,50 @@ export default function AdminDashboard() {
     await supabase.from("rsvps").delete().eq("invitation_id", id);
     await supabase.from("invitations").delete().eq("id", id);
     fetchInvitations();
+  }
+
+  function handleOpenEmail(email: string, name: string) {
+    setEmailSubject("Bruiloft Jorrit & Renee — 2 Juli 2027");
+    setEmailBody(`<p>Beste ${name},</p>\n<p></p>\n<p>Met vriendelijke groet,<br/>Jorrit & Renee</p>`);
+    setEmailSent(false);
+    setEmailError("");
+    setEmailModal({ to: email, name });
+  }
+
+  async function handleSendEmail() {
+    if (!emailModal) return;
+    setEmailSending(true);
+    setEmailError("");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            to: emailModal.to,
+            subject: emailSubject,
+            body: emailBody,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Verzenden mislukt");
+      }
+
+      setEmailSent(true);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Er ging iets mis");
+    } finally {
+      setEmailSending(false);
+    }
   }
 
   async function handleShowQr(token: string, name: string) {
@@ -212,6 +262,10 @@ export default function AdminDashboard() {
                             <div className="flex gap-2">
                               <button onClick={() => handleShowQr(inv.token, inv.name)}
                                 className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">QR</button>
+                              {inv.email && (
+                                <button onClick={() => handleOpenEmail(inv.email!, inv.name)}
+                                  className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">Email</button>
+                              )}
                               <button onClick={() => handleDelete(inv.id)}
                                 className="px-3 py-1.5 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">Verwijder</button>
                             </div>
@@ -246,6 +300,58 @@ export default function AdminDashboard() {
                 <button onClick={() => setQrModal(null)}
                   className="px-5 py-2.5 border border-gold-light/40 text-text-light rounded-xl text-sm font-sans hover:bg-cream transition-colors">Sluiten</button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Email Modal */}
+      <AnimatePresence>
+        {emailModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+            onClick={() => setEmailModal(null)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-bg-card rounded-3xl p-8 max-w-lg w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-serif text-xl text-text mb-1">E-mail versturen</h3>
+              <p className="text-sm text-text-muted font-sans mb-6">Naar: {emailModal.name} ({emailModal.to})</p>
+
+              {emailSent ? (
+                <div className="text-center py-6">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-sage-light/40 flex items-center justify-center">
+                    <svg className="w-7 h-7 text-sage-dark" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p className="font-serif text-lg text-text">E-mail verzonden!</p>
+                  <button onClick={() => setEmailModal(null)}
+                    className="mt-4 px-5 py-2 border border-gold-light/40 text-text-light rounded-xl text-sm font-sans hover:bg-cream transition-colors">Sluiten</button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-text font-sans mb-1">Onderwerp</label>
+                    <input type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)}
+                      className="w-full rounded-lg border border-gold-light/40 bg-bg px-3 py-2 text-sm text-text font-sans focus:border-rose-light focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-text font-sans mb-1">Bericht (HTML)</label>
+                    <textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={8}
+                      className="w-full rounded-lg border border-gold-light/40 bg-bg px-3 py-2 text-sm text-text font-sans focus:border-rose-light focus:outline-none resize-none" />
+                  </div>
+
+                  {emailError && <p className="text-red-500 text-sm text-center">{emailError}</p>}
+
+                  <div className="flex gap-3 justify-end">
+                    <button onClick={() => setEmailModal(null)}
+                      className="px-5 py-2.5 border border-gold-light/40 text-text-light rounded-xl text-sm font-sans hover:bg-cream transition-colors">Annuleren</button>
+                    <button onClick={handleSendEmail} disabled={emailSending}
+                      className="px-5 py-2.5 bg-rose text-white rounded-xl text-sm font-sans font-medium hover:bg-rose-dark transition-colors disabled:opacity-50">
+                      {emailSending ? "Verzenden..." : "Verstuur e-mail"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
