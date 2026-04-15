@@ -69,9 +69,59 @@ export default function AdminDashboard() {
     fetchInvitations();
   }
 
-  function handleOpenEmail(email: string, name: string) {
-    setEmailSubject("Bruiloft Jorrit & Renee — 2 Juli 2027");
-    setEmailBody(`<p>Beste ${name},</p>\n<p></p>\n<p>Met vriendelijke groet,<br/>Jorrit & Renee</p>`);
+  function handleOpenEmail(email: string, name: string, token: string, type: string) {
+    const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
+    const typeTekst = type === "dag" ? "de hele dag" : "het avondfeest";
+
+    setEmailSubject("Jullie zijn uitgenodigd! — Bruiloft Jorrit & Renee");
+    setEmailBody(`<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #3d3229;">
+  <div style="text-align: center; padding: 40px 20px; background: linear-gradient(to bottom, #f5efe6, #fdfbf7); border-radius: 16px 16px 0 0;">
+    <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #c4967a; margin: 0;">Wij gaan trouwen</p>
+    <h1 style="font-size: 36px; font-weight: 300; margin: 16px 0 8px; color: #3d3229;">Jorrit &amp; Renee</h1>
+    <p style="font-size: 14px; color: #8a7e72; letter-spacing: 2px;">2 JULI 2027</p>
+  </div>
+
+  <div style="padding: 32px 24px; background: #ffffff; border: 1px solid #e5d5b0; border-top: none;">
+    <p style="font-size: 18px; margin-bottom: 8px;">Beste ${name},</p>
+
+    <p style="line-height: 1.7; color: #5a4e42;">
+      Met grote vreugde nodigen wij jullie uit voor onze bruiloft op
+      <strong>2 juli 2027</strong>. Jullie zijn van harte welkom voor
+      <strong>${typeTekst}</strong>.
+    </p>
+
+    <p style="line-height: 1.7; color: #5a4e42;">
+      Wij zouden het heel fijn vinden als jullie willen laten weten of jullie erbij
+      kunnen zijn. Dit kan eenvoudig via de onderstaande knop.
+    </p>
+
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${rsvpUrl}" style="display: inline-block; padding: 14px 36px; background-color: #c4967a; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-family: sans-serif;">
+        Aanmelden
+      </a>
+    </div>
+
+    <p style="font-size: 13px; color: #b5a99a; text-align: center;">
+      Of kopieer deze link in je browser:<br/>
+      <a href="${rsvpUrl}" style="color: #c4967a; word-break: break-all;">${rsvpUrl}</a>
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e5d5b0; margin: 32px 0;" />
+
+    <p style="line-height: 1.7; color: #5a4e42;">
+      We kijken er ontzettend naar uit om deze bijzondere dag met jullie te delen!
+    </p>
+
+    <p style="line-height: 1.7; color: #5a4e42;">
+      Liefs,<br/>
+      <strong>Jorrit &amp; Renee</strong>
+    </p>
+  </div>
+
+  <div style="text-align: center; padding: 20px; background: #f5efe6; border-radius: 0 0 16px 16px; border: 1px solid #e5d5b0; border-top: none;">
+    <p style="font-size: 12px; color: #b5a99a; margin: 0;">J &amp; R — 02.07.2027</p>
+  </div>
+</div>`);
     setEmailSent(false);
     setEmailError("");
     setEmailModal({ to: email, name });
@@ -263,7 +313,7 @@ export default function AdminDashboard() {
                               <button onClick={() => handleShowQr(inv.token, inv.name)}
                                 className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">QR</button>
                               {inv.email && (
-                                <button onClick={() => handleOpenEmail(inv.email!, inv.name)}
+                                <button onClick={() => handleOpenEmail(inv.email!, inv.name, inv.token, inv.type)}
                                   className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">Email</button>
                               )}
                               <button onClick={() => handleDelete(inv.id)}
