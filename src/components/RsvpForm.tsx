@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { gastTeksten, isSolo } from "@/lib/teksten";
+import ContactLinks from "@/components/ContactLinks";
 
 interface RsvpFormProps {
   token: string;
@@ -182,7 +183,12 @@ export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
               />
             </div>
 
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && (
+              <div>
+                <p className="text-red-500 text-sm text-center">{error}</p>
+                {error === t.alGereageerd && <ContactLinks />}
+              </div>
+            )}
 
             <motion.button
               type="submit"

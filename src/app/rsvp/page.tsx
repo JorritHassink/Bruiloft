@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import RsvpForm from "@/components/RsvpForm";
+import ContactLinks from "@/components/ContactLinks";
 import { gastTeksten } from "@/lib/teksten";
 
 interface Rsvp {
@@ -135,8 +136,9 @@ function RsvpContent() {
                 </p>
               )}
               <p className="text-text-muted text-sm mt-4 italic">
-                Wil je iets wijzigen? Neem contact met ons op.
+                Wil je iets wijzigen? Neem contact met ons op:
               </p>
+              <ContactLinks />
             </div>
           ) : (
             <RsvpForm token={token!} maxGuests={invitation!.max_guests} />

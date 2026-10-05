@@ -18,7 +18,7 @@ export function gastTeksten(maxGuests: number) {
         uitkijken: "We kijken ernaar uit je te zien!",
         aangemeld: "Je bent aangemeld!",
         nietAanwezig: "Jammer dat je er niet bij kunt zijn",
-        alGereageerd: "Je hebt al gereageerd. Wil je iets wijzigen? Neem contact met ons op.",
+        alGereageerd: "Je hebt al gereageerd. Wil je iets wijzigen? Neem contact met ons op:",
       }
     : {
         intro: (type: string) =>
@@ -31,7 +31,7 @@ export function gastTeksten(maxGuests: number) {
         uitkijken: "We kijken ernaar uit jullie te zien!",
         aangemeld: "Jullie zijn aangemeld!",
         nietAanwezig: "Jammer dat jullie er niet bij kunnen zijn",
-        alGereageerd: "Jullie hebben al gereageerd. Wil je iets wijzigen? Neem contact met ons op.",
+        alGereageerd: "Jullie hebben al gereageerd. Wil je iets wijzigen? Neem contact met ons op:",
       };
 }
 
@@ -55,3 +55,10 @@ export function uitnodigingTeksten(maxGuests: number, type: string) {
         afsluiting: "We kijken er ontzettend naar uit om deze bijzondere dag met jullie te delen!",
       };
 }
+
+// Contact voor gasten die iets willen wijzigen
+export const CONTACT = {
+  weergave: "06 20442904",
+  tel: "+31620442904",
+  whatsapp: "https://api.whatsapp.com/send?phone=31620442904",
+};
