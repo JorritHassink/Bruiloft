@@ -49,6 +49,10 @@ export default function AdminDashboard() {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
 
+  const [editInv, setEditInv] = useState<Invitation | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<"dag" | "avond">("dag");
   const [newEmail, setNewEmail] = useState("");
@@ -172,6 +176,27 @@ export default function AdminDashboard() {
     } finally {
       setEmailSending(false);
     }
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editInv) return;
+    setEditSaving(true);
+    setEditError("");
+    const { error } = await supabase.from("invitations").update({
+      name: editInv.name,
+      type: editInv.type,
+      email: editInv.email || null,
+      phone: editInv.phone || null,
+      max_guests: editInv.max_guests,
+    }).eq("id", editInv.id);
+    setEditSaving(false);
+    if (error) {
+      setEditError("Opslaan mislukt, probeer het opnieuw");
+      return;
+    }
+    setEditInv(null);
+    fetchInvitations();
   }
 
   function handleWhatsApp(token: string, name: string, type: string, phone: string | null) {
@@ -350,6 +375,8 @@ export default function AdminDashboard() {
                                 <button onClick={() => handleOpenEmail(inv.email!, inv.name, inv.token, inv.type)}
                                   className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">Email</button>
                               )}
+                              <button onClick={() => { setEditError(""); setEditInv(inv); }}
+                                className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">Bewerken</button>
                               <button onClick={() => handleDelete(inv.id)}
                                 className="px-3 py-1.5 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">Verwijder</button>
                             </div>
@@ -384,6 +411,60 @@ export default function AdminDashboard() {
                 <button onClick={() => setQrModal(null)}
                   className="px-5 py-2.5 border border-gold-light/40 text-text-light rounded-xl text-sm font-sans hover:bg-cream transition-colors">Sluiten</button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {editInv && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+            onClick={() => setEditInv(null)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-bg-card rounded-3xl p-8 max-w-lg w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-serif text-xl text-text mb-6">Uitnodiging bewerken</h3>
+              <form onSubmit={handleSaveEdit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-text font-sans mb-1">Naam</label>
+                  <input type="text" required value={editInv.name}
+                    onChange={(e) => setEditInv({ ...editInv, name: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm text-text font-sans mb-1">Type</label>
+                  <select value={editInv.type} onChange={(e) => setEditInv({ ...editInv, type: e.target.value })} className={inputClass}>
+                    <option value="dag">Daggast</option>
+                    <option value="avond">Avondgast</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-text font-sans mb-1">E-mail (optioneel)</label>
+                  <input type="email" value={editInv.email || ""} placeholder="email@voorbeeld.nl"
+                    onChange={(e) => setEditInv({ ...editInv, email: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm text-text font-sans mb-1">Mobiel nummer (optioneel)</label>
+                  <input type="tel" value={editInv.phone || ""} placeholder="06 12345678"
+                    onChange={(e) => setEditInv({ ...editInv, phone: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm text-text font-sans mb-1">Max gasten</label>
+                  <input type="number" min={1} max={10} value={editInv.max_guests}
+                    onChange={(e) => setEditInv({ ...editInv, max_guests: Number(e.target.value) })} className={inputClass} />
+                </div>
+
+                {editError && <p className="text-red-500 text-sm text-center">{editError}</p>}
+
+                <div className="flex gap-3 justify-end">
+                  <button type="button" onClick={() => setEditInv(null)}
+                    className="px-5 py-2.5 border border-gold-light/40 text-text-light rounded-xl text-sm font-sans hover:bg-cream transition-colors">Annuleren</button>
+                  <button type="submit" disabled={editSaving}
+                    className="px-5 py-2.5 bg-rose text-white rounded-xl text-sm font-sans font-medium hover:bg-rose-dark transition-colors disabled:opacity-50">
+                    {editSaving ? "Opslaan..." : "Opslaan"}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}
