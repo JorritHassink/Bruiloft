@@ -1,9 +1,11 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import sharp from "sharp";
 
 // Voorbeeldafbeelding bij het delen van een link (WhatsApp, Facebook, etc.).
-// Wordt bij de build gegenereerd als /og-image.png en in layout.tsx gekoppeld.
+// Wordt bij de build gegenereerd als /og-image.jpg en in layout.tsx gekoppeld.
+// JPG i.p.v. PNG: klein en zonder transparantie, dat toont WhatsApp betrouwbaar.
 export const dynamic = "force-static";
 
 const size = { width: 1200, height: 630 };
@@ -26,7 +28,7 @@ export async function GET() {
     />
   );
 
-  return new ImageResponse(
+  const png = new ImageResponse(
     (
       <div
         style={{
@@ -86,4 +88,11 @@ export async function GET() {
       ],
     }
   );
+
+  const jpg = await sharp(Buffer.from(await png.arrayBuffer()))
+    .flatten({ background: "#fdfbf7" })
+    .jpeg({ quality: 85, progressive: false })
+    .toBuffer();
+
+  return new Response(new Uint8Array(jpg), { headers: { "Content-Type": "image/jpeg" } });
 }

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     siteName: "Jorrit & Renee",
     locale: "nl_NL",
     type: "website",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Jorrit & Renee — 2 Juli 2027" }],
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "Jorrit & Renee — 2 Juli 2027" }],
   },
 };
 
