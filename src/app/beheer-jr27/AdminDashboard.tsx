@@ -20,12 +20,22 @@ interface Invitation {
   name: string;
   type: string;
   email: string | null;
+  phone: string | null;
   max_guests: number;
   created_at: string;
   rsvps: Rsvp[];
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
+
+// "06-12345678", "+31 6 1234 5678" of "0031612345678" → "31612345678" (formaat voor wa.me)
+function toWhatsAppNumber(phone: string): string {
+  let digits = phone.replace(/[^\d+]/g, "");
+  if (digits.startsWith("+")) digits = digits.slice(1);
+  else if (digits.startsWith("00")) digits = digits.slice(2);
+  else if (digits.startsWith("0")) digits = "31" + digits.slice(1);
+  return digits.replace(/\D/g, "");
+}
 
 export default function AdminDashboard() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -42,6 +52,7 @@ export default function AdminDashboard() {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<"dag" | "avond">("dag");
   const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [newMaxGuests, setNewMaxGuests] = useState(2);
 
   const fetchInvitations = useCallback(async () => {
@@ -56,9 +67,9 @@ export default function AdminDashboard() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     await supabase.from("invitations").insert({
-      name: newName, type: newType, email: newEmail || null, max_guests: newMaxGuests,
+      name: newName, type: newType, email: newEmail || null, phone: newPhone || null, max_guests: newMaxGuests,
     });
-    setNewName(""); setNewEmail(""); setNewMaxGuests(2); setShowForm(false);
+    setNewName(""); setNewEmail(""); setNewPhone(""); setNewMaxGuests(2); setShowForm(false);
     fetchInvitations();
   }
 
@@ -163,6 +174,19 @@ export default function AdminDashboard() {
     }
   }
 
+  function handleWhatsApp(token: string, name: string, type: string, phone: string | null) {
+    const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
+    const typeTekst = type === "dag" ? "de hele dag" : "het avondfeest";
+    const text =
+      `Beste ${name},\n\n` +
+      `Wij gaan trouwen! 💍 Met grote vreugde nodigen wij jullie uit voor onze bruiloft op 2 juli 2027. ` +
+      `Jullie zijn van harte welkom voor ${typeTekst}.\n\n` +
+      `Laten jullie via deze link weten of jullie erbij kunnen zijn?\n${rsvpUrl}\n\n` +
+      `Liefs, Jorrit & Renee`;
+    const number = phone ? toWhatsAppNumber(phone) : "";
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  }
+
   async function handleShowQr(token: string, name: string) {
     const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
     const qr = await QRCode.toDataURL(rsvpUrl, {
@@ -252,6 +276,10 @@ export default function AdminDashboard() {
                   <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@voorbeeld.nl" className={inputClass} />
                 </div>
                 <div>
+                  <label className="block text-sm text-text font-sans mb-1">Mobiel nummer (optioneel)</label>
+                  <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="06 12345678" className={inputClass} />
+                </div>
+                <div>
                   <label className="block text-sm text-text font-sans mb-1">Max gasten</label>
                   <input type="number" min={1} max={10} value={newMaxGuests} onChange={(e) => setNewMaxGuests(Number(e.target.value))} className={inputClass} />
                 </div>
@@ -295,6 +323,7 @@ export default function AdminDashboard() {
                           <td className="px-6 py-4">
                             <div className="font-medium text-text">{inv.name}</div>
                             {inv.email && <div className="text-xs text-text-muted">{inv.email}</div>}
+                            {inv.phone && <div className="text-xs text-text-muted">{inv.phone}</div>}
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -312,6 +341,8 @@ export default function AdminDashboard() {
                             <div className="flex gap-2">
                               <button onClick={() => handleShowQr(inv.token, inv.name)}
                                 className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">QR</button>
+                              <button onClick={() => handleWhatsApp(inv.token, inv.name, inv.type, inv.phone)}
+                                className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">WhatsApp</button>
                               {inv.email && (
                                 <button onClick={() => handleOpenEmail(inv.email!, inv.name, inv.token, inv.type)}
                                   className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">Email</button>
