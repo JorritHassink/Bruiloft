@@ -12,17 +12,17 @@ const size = { width: 1200, height: 630 };
 
 export async function GET() {
   const fonts = join(process.cwd(), "assets/fonts");
-  const [serifLight, serifItalic, sans] = await Promise.all([
-    readFile(join(fonts, "cormorant-garamond-latin-300-normal.woff")),
-    readFile(join(fonts, "cormorant-garamond-latin-400-italic.woff")),
-    readFile(join(fonts, "jost-latin-400-normal.woff")),
+  const [serif, serifItalic, sans] = await Promise.all([
+    readFile(join(fonts, "cormorant-garamond-latin-500-normal.woff")),
+    readFile(join(fonts, "cormorant-garamond-latin-500-italic.woff")),
+    readFile(join(fonts, "jost-latin-500-normal.woff")),
   ]);
 
   const goldLine = (direction: "left" | "right") => (
     <div
       style={{
-        width: 120,
-        height: 2,
+        width: 140,
+        height: 3,
         background: `linear-gradient(to ${direction}, rgba(196,162,101,0), #c4a265)`,
       }}
     />
@@ -62,19 +62,19 @@ export async function GET() {
           }}
         />
 
-        <div style={{ fontFamily: "Jost", fontSize: 26, letterSpacing: 10, color: "#c4967a", marginBottom: 28 }}>
+        <div style={{ fontFamily: "Jost", fontSize: 34, letterSpacing: 10, color: "#a67a60", marginBottom: 30 }}>
           WIJ GAAN TROUWEN
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", fontFamily: "Cormorant", fontSize: 150, color: "#3d3229", lineHeight: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", fontFamily: "Cormorant", fontSize: 168, color: "#3d3229", lineHeight: 1 }}>
           <span>Jorrit</span>
-          <span style={{ fontFamily: "Cormorant Italic", fontStyle: "italic", color: "#c4a265", fontSize: 110, margin: "0 36px" }}>&amp;</span>
+          <span style={{ fontFamily: "Cormorant Italic", fontStyle: "italic", color: "#b8914f", fontSize: 124, margin: "0 36px" }}>&amp;</span>
           <span>Renee</span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", marginTop: 40, gap: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", marginTop: 44, gap: 28 }}>
           {goldLine("right")}
-          <div style={{ fontFamily: "Jost", fontSize: 30, letterSpacing: 8, color: "#8a7e72" }}>2 JULI 2027</div>
+          <div style={{ fontFamily: "Jost", fontSize: 38, letterSpacing: 8, color: "#6f6358" }}>2 JULI 2027</div>
           {goldLine("left")}
         </div>
       </div>
@@ -82,16 +82,17 @@ export async function GET() {
     {
       ...size,
       fonts: [
-        { name: "Cormorant", data: serifLight, style: "normal", weight: 300 },
-        { name: "Cormorant Italic", data: serifItalic, style: "italic", weight: 400 },
-        { name: "Jost", data: sans, style: "normal", weight: 400 },
+        { name: "Cormorant", data: serif, style: "normal", weight: 500 },
+        { name: "Cormorant Italic", data: serifItalic, style: "italic", weight: 500 },
+        { name: "Jost", data: sans, style: "normal", weight: 500 },
       ],
     }
   );
 
   const jpg = await sharp(Buffer.from(await png.arrayBuffer()))
     .flatten({ background: "#fdfbf7" })
-    .jpeg({ quality: 85, progressive: false })
+    // 4:4:4 = geen kleurcompressie, houdt dunne gekleurde lijnen (goud, roze) scherp
+    .jpeg({ quality: 92, progressive: false, chromaSubsampling: "4:4:4" })
     .toBuffer();
 
   return new Response(new Uint8Array(jpg), { headers: { "Content-Type": "image/jpeg" } });
