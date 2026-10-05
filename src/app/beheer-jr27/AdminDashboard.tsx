@@ -28,14 +28,21 @@ interface Invitation {
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
 
-// "06-12345678", "+31 6 1234 5678" of "0031612345678" → "31612345678" (formaat voor wa.me)
-function toWhatsAppNumber(phone: string): string {
-  let digits = phone.replace(/[^\d+]/g, "");
+// Zet elk nummer om naar internationaal formaat: "06-12345678", "+31 (0)6 1234 5678",
+// "+31 06 12345678" of "0031612345678" → "+31612345678". Geeft null bij een ongeldig nummer.
+function normalizePhone(input: string): string | null {
+  let digits = input.replace(/\(0\)/g, "").replace(/＋/g, "+").replace(/[^\d+]/g, "");
   if (digits.startsWith("+")) digits = digits.slice(1);
   else if (digits.startsWith("00")) digits = digits.slice(2);
   else if (digits.startsWith("0")) digits = "31" + digits.slice(1);
-  return digits.replace(/\D/g, "");
+  digits = digits.replace(/\D/g, "");
+  // Nederlandse 0 na de landcode weghalen: 3106… → 316…
+  if (digits.startsWith("310")) digits = "31" + digits.slice(3);
+  if (digits.startsWith("31") ? digits.length !== 11 : digits.length < 8 || digits.length > 15) return null;
+  return `+${digits}`;
 }
+
+const PHONE_ERROR = "Ongeldig mobiel nummer, bijvoorbeeld 06 12345678 of +31 6 12345678";
 
 export default function AdminDashboard() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -57,6 +64,7 @@ export default function AdminDashboard() {
   const [newType, setNewType] = useState<"dag" | "avond">("dag");
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [createError, setCreateError] = useState("");
   const [newMaxGuests, setNewMaxGuests] = useState(2);
 
   const fetchInvitations = useCallback(async () => {
@@ -70,8 +78,11 @@ export default function AdminDashboard() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    const phone = newPhone.trim() ? normalizePhone(newPhone) : null;
+    if (newPhone.trim() && !phone) { setCreateError(PHONE_ERROR); return; }
+    setCreateError("");
     await supabase.from("invitations").insert({
-      name: newName, type: newType, email: newEmail || null, phone: newPhone || null, max_guests: newMaxGuests,
+      name: newName, type: newType, email: newEmail || null, phone, max_guests: newMaxGuests,
     });
     setNewName(""); setNewEmail(""); setNewPhone(""); setNewMaxGuests(2); setShowForm(false);
     fetchInvitations();
@@ -181,13 +192,15 @@ export default function AdminDashboard() {
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editInv) return;
+    const phone = editInv.phone?.trim() ? normalizePhone(editInv.phone) : null;
+    if (editInv.phone?.trim() && !phone) { setEditError(PHONE_ERROR); return; }
     setEditSaving(true);
     setEditError("");
     const { error } = await supabase.from("invitations").update({
       name: editInv.name,
       type: editInv.type,
       email: editInv.email || null,
-      phone: editInv.phone || null,
+      phone,
       max_guests: editInv.max_guests,
     }).eq("id", editInv.id);
     setEditSaving(false);
@@ -208,7 +221,8 @@ export default function AdminDashboard() {
       `Jullie zijn van harte welkom voor ${typeTekst}.\n\n` +
       `Laten jullie via deze link weten of jullie erbij kunnen zijn?\n${rsvpUrl}\n\n` +
       `Liefs, Jorrit & Renee`;
-    const number = phone ? toWhatsAppNumber(phone) : "";
+    // Ook oude, niet-omgezette nummers werken zo
+    const number = phone ? normalizePhone(phone)?.slice(1) ?? "" : "";
     // Direct naar api.whatsapp.com: de redirect via wa.me verminkt emoji zoals 💍
     const params = new URLSearchParams({ text });
     if (number) params.set("phone", number);
@@ -311,6 +325,7 @@ export default function AdminDashboard() {
                   <label className="block text-sm text-text font-sans mb-1">Max gasten</label>
                   <input type="number" min={1} max={10} value={newMaxGuests} onChange={(e) => setNewMaxGuests(Number(e.target.value))} className={inputClass} />
                 </div>
+                {createError && <p className="md:col-span-2 text-red-500 text-sm">{createError}</p>}
                 <div className="md:col-span-2 flex gap-3">
                   <button type="submit" className="px-5 py-2 bg-rose text-white rounded-lg text-sm font-sans font-medium hover:bg-rose-dark transition-colors">Toevoegen</button>
                   <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gold-light/40 text-text-light rounded-lg text-sm font-sans hover:bg-cream transition-colors">Annuleren</button>
