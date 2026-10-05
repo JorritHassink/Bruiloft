@@ -184,7 +184,10 @@ export default function AdminDashboard() {
       `Laten jullie via deze link weten of jullie erbij kunnen zijn?\n${rsvpUrl}\n\n` +
       `Liefs, Jorrit & Renee`;
     const number = phone ? toWhatsAppNumber(phone) : "";
-    window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    // Direct naar api.whatsapp.com: de redirect via wa.me verminkt emoji zoals 💍
+    const params = new URLSearchParams({ text });
+    if (number) params.set("phone", number);
+    window.open(`https://api.whatsapp.com/send?${params.toString()}`, "_blank", "noopener");
   }
 
   async function handleShowQr(token: string, name: string) {

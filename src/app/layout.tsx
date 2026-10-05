@@ -2,8 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://jorritenrenee.nl"),
   title: "Jorrit & Renee — 2 Juli 2027",
   description: "Wij gaan trouwen! Vier deze bijzondere dag met ons mee.",
+  openGraph: {
+    title: "Jorrit & Renee — 2 Juli 2027",
+    description: "Wij gaan trouwen! Vier deze bijzondere dag met ons mee.",
+    siteName: "Jorrit & Renee",
+    locale: "nl_NL",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
