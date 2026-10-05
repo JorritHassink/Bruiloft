@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { gastTeksten, isSolo } from "@/lib/teksten";
 
 interface RsvpFormProps {
   token: string;
@@ -13,10 +14,11 @@ const RPC_ERRORS: Record<string, string> = {
   invitation_not_found: "Uitnodiging niet gevonden",
   invalid_guest_count: "Ongeldig aantal personen",
   input_too_long: "Een van de velden is te lang",
-  already_responded: "Jullie hebben al gereageerd. Wil je iets wijzigen? Neem contact met ons op.",
 };
 
 export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
+  const t = gastTeksten(maxGuests);
+  const solo = isSolo(maxGuests);
   const [attending, setAttending] = useState<boolean | null>(null);
   const [guestCount, setGuestCount] = useState(1);
   const [guestNames, setGuestNames] = useState("");
@@ -41,7 +43,9 @@ export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
         p_dietary_notes: attending ? dietaryNotes || null : null,
         p_remarks: remarks || null,
       });
-      if (dbError) throw new Error(RPC_ERRORS[dbError.message] || "Er ging iets mis");
+      if (dbError) throw new Error(
+        dbError.message === "already_responded" ? t.alGereageerd : RPC_ERRORS[dbError.message] || "Er ging iets mis"
+      );
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Er ging iets mis");
@@ -63,10 +67,10 @@ export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
           </svg>
         </div>
         <h3 className="font-serif text-2xl text-text mb-2">
-          {attending ? "Bedankt voor jullie aanmelding!" : "Bedankt voor het laten weten."}
+          {attending ? t.bedanktJa : "Bedankt voor het laten weten."}
         </h3>
         {attending && (
-          <p className="text-text-light">We kijken ernaar uit jullie te zien!</p>
+          <p className="text-text-light">{t.uitkijken}</p>
         )}
       </motion.div>
     );
@@ -79,11 +83,11 @@ export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label className="block text-sm font-sans font-medium text-text mb-3">
-          Kunnen jullie erbij zijn?
+          {t.vraag}
         </label>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { value: true, label: "Ja, wij komen!", icon: "🎉" },
+            { value: true, label: t.jaKnop, icon: "🎉" },
             { value: false, label: "Helaas niet", icon: "😔" },
           ].map((opt) => (
             <motion.button
@@ -113,30 +117,36 @@ export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
             exit={{ opacity: 0, height: 0 }}
             className="space-y-5 overflow-hidden"
           >
-            <div>
-              <label className="block text-sm font-sans font-medium text-text mb-2">
-                Met hoeveel personen?
-              </label>
-              <select value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} className={inputClass}>
-                {Array.from({ length: maxGuests }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {n} {n === 1 ? "persoon" : "personen"}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-sans font-medium text-text mb-2">
-                Namen van de gasten
-              </label>
-              <input
-                type="text"
-                value={guestNames}
-                onChange={(e) => setGuestNames(e.target.value)}
-                placeholder="bijv. Jan en Petra"
-                className={inputClass}
-              />
-            </div>
+            <p className="text-sm text-text-light text-center">{t.naJa}</p>
+            {/* Bij een uitnodiging voor 1 persoon zijn aantal en namen niet nodig */}
+            {!solo && (
+              <>
+                <div>
+                  <label className="block text-sm font-sans font-medium text-text mb-2">
+                    Met hoeveel personen?
+                  </label>
+                  <select value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} className={inputClass}>
+                    {Array.from({ length: maxGuests }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n} {n === 1 ? "persoon" : "personen"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-sans font-medium text-text mb-2">
+                    Namen van de gasten
+                  </label>
+                  <input
+                    type="text"
+                    value={guestNames}
+                    onChange={(e) => setGuestNames(e.target.value)}
+                    placeholder="bijv. Jan en Petra"
+                    className={inputClass}
+                  />
+                </div>
+              </>
+            )}
             <div>
               <label className="block text-sm font-sans font-medium text-text mb-2">
                 Dieetwensen of allergieën
@@ -156,9 +166,12 @@ export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
       <AnimatePresence>
         {attending !== null && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+            {attending === false && (
+              <p className="text-sm text-text-light text-center">{t.naNee}</p>
+            )}
             <div>
               <label className="block text-sm font-sans font-medium text-text mb-2">
-                Opmerkingen
+                {attending ? "Opmerkingen" : "Berichtje voor ons (optioneel)"}
               </label>
               <textarea
                 value={remarks}

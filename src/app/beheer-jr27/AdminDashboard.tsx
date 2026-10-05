@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import QRCode from "qrcode";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
+import { uitnodigingTeksten } from "@/lib/teksten";
 
 interface Rsvp {
   id: string;
@@ -94,11 +95,16 @@ export default function AdminDashboard() {
     fetchInvitations();
   }
 
-  function handleOpenEmail(email: string, name: string, token: string, type: string) {
+  function handleOpenEmail({ email, name, token, type, max_guests }: Invitation) {
+    if (!email) return;
     const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
+    const u = uitnodigingTeksten(max_guests, type);
     const typeTekst = type === "dag" ? "de hele dag" : "het avondfeest";
+    const uitnodigingHtml = u.uitnodiging
+      .replace("2 juli 2027", "<strong>2 juli 2027</strong>")
+      .replace(typeTekst, `<strong>${typeTekst}</strong>`);
 
-    setEmailSubject("Jullie zijn uitgenodigd! — Bruiloft Jorrit & Renee");
+    setEmailSubject(u.onderwerp);
     setEmailBody(`<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #3d3229;">
   <div style="text-align: center; padding: 40px 20px; background: linear-gradient(to bottom, #f5efe6, #fdfbf7); border-radius: 16px 16px 0 0;">
     <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #c4967a; margin: 0;">Wij gaan trouwen</p>
@@ -110,14 +116,11 @@ export default function AdminDashboard() {
     <p style="font-size: 18px; margin-bottom: 8px;">Beste ${name},</p>
 
     <p style="line-height: 1.7; color: #5a4e42;">
-      Met grote vreugde nodigen wij jullie uit voor onze bruiloft op
-      <strong>2 juli 2027</strong>. Jullie zijn van harte welkom voor
-      <strong>${typeTekst}</strong>.
+      ${uitnodigingHtml}
     </p>
 
     <p style="line-height: 1.7; color: #5a4e42;">
-      Wij zouden het heel fijn vinden als jullie willen laten weten of jullie erbij
-      kunnen zijn. Dit kan eenvoudig via de onderstaande knop.
+      ${u.verzoekMail}
     </p>
 
     <div style="text-align: center; margin: 32px 0;">
@@ -134,7 +137,7 @@ export default function AdminDashboard() {
     <hr style="border: none; border-top: 1px solid #e5d5b0; margin: 32px 0;" />
 
     <p style="line-height: 1.7; color: #5a4e42;">
-      We kijken er ontzettend naar uit om deze bijzondere dag met jullie te delen!
+      ${u.afsluiting}
     </p>
 
     <p style="line-height: 1.7; color: #5a4e42;">
@@ -211,14 +214,13 @@ export default function AdminDashboard() {
     fetchInvitations();
   }
 
-  function handleWhatsApp(token: string, name: string, type: string, phone: string | null) {
+  function handleWhatsApp({ token, name, type, phone, max_guests }: Invitation) {
     const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
-    const typeTekst = type === "dag" ? "de hele dag" : "het avondfeest";
+    const u = uitnodigingTeksten(max_guests, type);
     const text =
       `Beste ${name},\n\n` +
-      `Wij gaan trouwen! 💍 Met grote vreugde nodigen wij jullie uit voor onze bruiloft op 2 juli 2027. ` +
-      `Jullie zijn van harte welkom voor ${typeTekst}.\n\n` +
-      `Laten jullie via deze link weten of jullie erbij kunnen zijn?\n${rsvpUrl}\n\n` +
+      `Wij gaan trouwen! 💍 ${u.uitnodiging}\n\n` +
+      `${u.verzoek}\n${rsvpUrl}\n\n` +
       `Liefs, Jorrit & Renee`;
     // Ook oude, niet-omgezette nummers werken zo
     const number = phone ? normalizePhone(phone)?.slice(1) ?? "" : "";
@@ -383,10 +385,10 @@ export default function AdminDashboard() {
                             <div className="flex gap-2">
                               <button onClick={() => handleShowQr(inv.token, inv.name)}
                                 className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">QR</button>
-                              <button onClick={() => handleWhatsApp(inv.token, inv.name, inv.type, inv.phone)}
+                              <button onClick={() => handleWhatsApp(inv)}
                                 className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">WhatsApp</button>
                               {inv.email && (
-                                <button onClick={() => handleOpenEmail(inv.email!, inv.name, inv.token, inv.type)}
+                                <button onClick={() => handleOpenEmail(inv)}
                                   className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">Email</button>
                               )}
                               <button onClick={() => { setEditError(""); setEditInv(inv); }}

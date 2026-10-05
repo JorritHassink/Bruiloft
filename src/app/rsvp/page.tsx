@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import RsvpForm from "@/components/RsvpForm";
+import { gastTeksten } from "@/lib/teksten";
 
 interface Rsvp {
   attending: boolean;
@@ -64,6 +65,8 @@ function RsvpContent() {
     );
   }
 
+  const t = gastTeksten(invitation!.max_guests);
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-cream via-bg to-bg-warm">
       {/* Header */}
@@ -108,9 +111,7 @@ function RsvpContent() {
               Beste {invitation!.name}
             </h2>
             <p className="text-text-light text-sm leading-relaxed">
-              {invitation!.type === "dag"
-                ? "Wat fijn dat jullie erbij zijn! Jullie zijn uitgenodigd voor de hele dag."
-                : "Wat fijn dat jullie erbij zijn! Jullie zijn uitgenodigd voor het avondfeest."}
+              {t.intro(invitation!.type)}
             </p>
             <div className="mt-3 inline-block px-3 py-1 rounded-full text-xs uppercase tracking-wider font-sans bg-blush-light/60 text-rose-dark">
               {invitation!.type === "dag" ? "Daggast" : "Avondgast"}
@@ -125,7 +126,7 @@ function RsvpContent() {
                 </svg>
               </div>
               <h3 className="font-serif text-xl text-text mb-2">
-                {rsvp.attending ? "Jullie zijn aangemeld!" : "Jammer dat jullie er niet bij kunnen zijn"}
+                {rsvp.attending ? t.aangemeld : t.nietAanwezig}
               </h3>
               {rsvp.attending && (
                 <p className="text-text-light text-sm">
