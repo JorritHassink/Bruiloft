@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import QRCode from "qrcode";
+import { parsePhoneNumberFromString } from "libphonenumber-js/min";
 
 interface Rsvp {
   id: string;
@@ -28,21 +29,19 @@ interface Invitation {
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
 
-// Zet elk nummer om naar internationaal formaat: "06-12345678", "+31 (0)6 1234 5678",
-// "+31 06 12345678" of "0031612345678" → "+31612345678". Geeft null bij een ongeldig nummer.
+// Zet elk nummer om naar internationaal formaat (E.164), voor alle landen:
+// "06-12345678", "+31 (0)6 1234 5678", "+31 06 12345678" → "+31612345678",
+// "0032 0470 12 34 56" → "+32470123456". Zonder landcode wordt Nederland aangenomen.
+// Geeft null bij een ongeldig nummer.
 function normalizePhone(input: string): string | null {
-  let digits = input.replace(/\(0\)/g, "").replace(/＋/g, "+").replace(/[^\d+]/g, "");
-  if (digits.startsWith("+")) digits = digits.slice(1);
-  else if (digits.startsWith("00")) digits = digits.slice(2);
-  else if (digits.startsWith("0")) digits = "31" + digits.slice(1);
-  digits = digits.replace(/\D/g, "");
-  // Nederlandse 0 na de landcode weghalen: 3106… → 316…
-  if (digits.startsWith("310")) digits = "31" + digits.slice(3);
-  if (digits.startsWith("31") ? digits.length !== 11 : digits.length < 8 || digits.length > 15) return null;
-  return `+${digits}`;
+  const cleaned = input.replace(/\(0\)/g, "").replace(/＋/g, "+").trim();
+  let parsed = parsePhoneNumberFromString(cleaned, "NL");
+  // "32470123456": landcode zonder + of 00 ervoor
+  if (!parsed?.isValid() && /^[1-9]/.test(cleaned)) parsed = parsePhoneNumberFromString(`+${cleaned}`);
+  return parsed?.isValid() ? parsed.number : null;
 }
 
-const PHONE_ERROR = "Ongeldig mobiel nummer, bijvoorbeeld 06 12345678 of +31 6 12345678";
+const PHONE_ERROR = "Ongeldig nummer. Bijvoorbeeld 06 12345678, of voor het buitenland +32 470 12 34 56";
 
 export default function AdminDashboard() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -319,7 +318,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm text-text font-sans mb-1">Mobiel nummer (optioneel)</label>
-                  <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="06 12345678" className={inputClass} />
+                  <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="06 12345678 of +32 470 12 34 56" className={inputClass} />
                 </div>
                 <div>
                   <label className="block text-sm text-text font-sans mb-1">Max gasten</label>
@@ -460,7 +459,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm text-text font-sans mb-1">Mobiel nummer (optioneel)</label>
-                  <input type="tel" value={editInv.phone || ""} placeholder="06 12345678"
+                  <input type="tel" value={editInv.phone || ""} placeholder="06 12345678 of +32 470 12 34 56"
                     onChange={(e) => setEditInv({ ...editInv, phone: e.target.value })} className={inputClass} />
                 </div>
                 <div>
