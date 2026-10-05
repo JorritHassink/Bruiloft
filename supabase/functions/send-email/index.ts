@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     : { "Access-Control-Allow-Origin": "", "Content-Type": "application/json" };
 
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers });
   }
 
   try {
@@ -91,6 +91,12 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) {
       return new Response(JSON.stringify({ error: "Niet ingelogd" }), { status: 401, headers });
+    }
+
+    // Alleen admins mogen mailen
+    const { data: isAdmin } = await supabaseClient.rpc("is_admin");
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Geen toegang" }), { status: 403, headers });
     }
 
     // Rate limiting

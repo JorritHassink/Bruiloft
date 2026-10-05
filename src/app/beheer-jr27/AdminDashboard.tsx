@@ -64,7 +64,7 @@ export default function AdminDashboard() {
 
   async function handleDelete(id: string) {
     if (!confirm("Weet je zeker dat je deze uitnodiging wilt verwijderen?")) return;
-    await supabase.from("rsvps").delete().eq("invitation_id", id);
+    // rsvps verdwijnen via on delete cascade
     await supabase.from("invitations").delete().eq("id", id);
     fetchInvitations();
   }

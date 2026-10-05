@@ -4,10 +4,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
-export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
+export default function AdminLogin({ error: externalError }: { error?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(externalError || "");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -19,9 +19,8 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
     if (authError) {
       setError("Onjuiste inloggegevens");
       setLoading(false);
-    } else {
-      onLogin();
     }
+    // Bij succes regelt de admin-pagina via onAuthStateChange de admin-check
   }
 
   const inputClass =

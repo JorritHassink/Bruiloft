@@ -6,18 +6,17 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import RsvpForm from "@/components/RsvpForm";
 
-interface Invitation {
-  id: string;
-  token: string;
-  name: string;
-  type: string;
-  max_guests: number;
-}
-
 interface Rsvp {
   attending: boolean;
   guest_count: number;
   dietary_notes: string | null;
+}
+
+interface Invitation {
+  name: string;
+  type: string;
+  max_guests: number;
+  rsvp: Rsvp | null;
 }
 
 function RsvpContent() {
@@ -33,14 +32,11 @@ function RsvpContent() {
     async function load() {
       if (!token) { setNotFound(true); setLoading(false); return; }
 
-      const { data: inv } = await supabase
-        .from("invitations").select("*").eq("token", token).single();
+      const { data: inv } = await supabase.rpc("get_invitation", { p_token: token });
       if (!inv) { setNotFound(true); setLoading(false); return; }
 
-      setInvitation(inv);
-      const { data: rsvpData } = await supabase
-        .from("rsvps").select("*").eq("invitation_id", inv.id).single();
-      if (rsvpData) setRsvp(rsvpData);
+      setInvitation(inv as Invitation);
+      setRsvp((inv as Invitation).rsvp);
       setLoading(false);
     }
     load();
@@ -142,7 +138,7 @@ function RsvpContent() {
               </p>
             </div>
           ) : (
-            <RsvpForm invitationId={invitation!.id} maxGuests={invitation!.max_guests} />
+            <RsvpForm token={token!} maxGuests={invitation!.max_guests} />
           )}
         </div>
       </motion.div>

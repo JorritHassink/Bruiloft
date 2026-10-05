@@ -5,11 +5,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
 interface RsvpFormProps {
-  invitationId: string;
+  token: string;
   maxGuests: number;
 }
 
-export default function RsvpForm({ invitationId, maxGuests }: RsvpFormProps) {
+const RPC_ERRORS: Record<string, string> = {
+  invitation_not_found: "Uitnodiging niet gevonden",
+  invalid_guest_count: "Ongeldig aantal personen",
+  input_too_long: "Een van de velden is te lang",
+  already_responded: "Jullie hebben al gereageerd. Wil je iets wijzigen? Neem contact met ons op.",
+};
+
+export default function RsvpForm({ token, maxGuests }: RsvpFormProps) {
   const [attending, setAttending] = useState<boolean | null>(null);
   const [guestCount, setGuestCount] = useState(1);
   const [guestNames, setGuestNames] = useState("");
@@ -26,15 +33,15 @@ export default function RsvpForm({ invitationId, maxGuests }: RsvpFormProps) {
     setError("");
 
     try {
-      const { error: dbError } = await supabase.from("rsvps").insert({
-        invitation_id: invitationId,
-        attending,
-        guest_count: attending ? guestCount : 0,
-        guest_names: attending ? guestNames || null : null,
-        dietary_notes: attending ? dietaryNotes || null : null,
-        remarks: remarks || null,
+      const { error: dbError } = await supabase.rpc("submit_rsvp", {
+        p_token: token,
+        p_attending: attending,
+        p_guest_count: attending ? guestCount : 0,
+        p_guest_names: attending ? guestNames || null : null,
+        p_dietary_notes: attending ? dietaryNotes || null : null,
+        p_remarks: remarks || null,
       });
-      if (dbError) throw new Error(dbError.message);
+      if (dbError) throw new Error(RPC_ERRORS[dbError.message] || "Er ging iets mis");
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Er ging iets mis");
