@@ -328,11 +328,16 @@ export default function AdminDashboard() {
     aantal: zonderReactie.filter((i) => i.invite_status === s).length,
   }));
 
+  // Totaal aantal personen dat maximaal kan komen (som van max gasten per uitnodiging)
+  const maxGasten = (items: Invitation[]) => items.reduce((s, i) => s + i.max_guests, 0);
+
   const stats = {
     total: invitations.length,
     responded: invitations.filter((i) => getRsvp(i)).length,
     dag: dagInvitations.filter((i) => getRsvp(i)?.attending).reduce((s, i) => s + (getRsvp(i)?.guest_count || 0), 0),
     avond: avondInvitations.filter((i) => getRsvp(i)?.attending).reduce((s, i) => s + (getRsvp(i)?.guest_count || 0), 0),
+    dagMax: maxGasten(dagInvitations),
+    avondMax: maxGasten(avondInvitations),
   };
 
   if (loading) {
@@ -369,8 +374,8 @@ export default function AdminDashboard() {
           {[
             { label: "Uitnodigingen", value: stats.total },
             { label: "Gereageerd", value: `${stats.responded}/${stats.total}` },
-            { label: "Daggasten", value: stats.dag },
-            { label: "Avondgasten", value: stats.avond },
+            { label: "Daggasten (komt / max)", value: `${stats.dag} / ${stats.dagMax}` },
+            { label: "Avondgasten (komt / max)", value: `${stats.avond} / ${stats.avondMax}` },
           ].map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-bg-card rounded-2xl border border-gold-light/30 p-5 text-center">
@@ -437,7 +442,7 @@ export default function AdminDashboard() {
           <div key={title} className="bg-bg-card rounded-2xl border border-gold-light/30 overflow-hidden">
             <div className="px-6 py-4 border-b border-linen">
               <h2 className="font-serif text-lg text-text">
-                {title} <span className="text-text-muted text-sm font-sans">({items.length})</span>
+                {title} <span className="text-text-muted text-sm font-sans">({items.length} {items.length === 1 ? "uitnodiging" : "uitnodigingen"} · max {maxGasten(items)} personen)</span>
               </h2>
             </div>
             {items.length === 0 ? (
@@ -483,7 +488,9 @@ export default function AdminDashboard() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-text-light">
-                            {rsvp?.attending ? `${rsvp.guest_count} ${rsvp.guest_names ? `(${rsvp.guest_names})` : ""}` : "—"}
+                            {rsvp?.attending
+                              ? <>{rsvp.guest_count} van {inv.max_guests}{rsvp.guest_names && <div className="text-xs text-text-muted">{rsvp.guest_names}</div>}</>
+                              : <span className="text-text-muted">max {inv.max_guests}</span>}
                           </td>
                           <td className="px-6 py-4 text-text-light text-xs">{rsvp?.dietary_notes || "—"}</td>
                           <td className="px-6 py-4">
