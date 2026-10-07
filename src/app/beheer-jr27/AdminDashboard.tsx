@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import QRCode from "qrcode";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
-import { uitnodigingTeksten, saveTheDateBericht, FASE } from "@/lib/teksten";
+import { uitnodigingTeksten, saveTheDateBericht, saveTheDateTeksten } from "@/lib/teksten";
 
 interface Rsvp {
   id: string;
@@ -25,10 +25,89 @@ interface Invitation {
   phone: string | null;
   max_guests: number;
   created_at: string;
+  invite_status: InviteStatus;
+  save_the_date_at: string | null;
+  save_the_date_via: Via | null;
+  invited_at: string | null;
+  invited_via: Via | null;
   rsvps: Rsvp[];
 }
 
+// Verzendstatus: aangemaakt → save_the_date (verzonden) → uitgenodigd (wacht op reactie).
+// "Komt" / "Komt niet" volgt uit de rsvp.
+type InviteStatus = "aangemaakt" | "save_the_date" | "uitgenodigd";
+type Via = "whatsapp" | "email";
+type Stap = "save_the_date" | "uitgenodigd";
+
+const STATUS_LABEL: Record<InviteStatus, string> = {
+  aangemaakt: "Aangemaakt",
+  save_the_date: "Save the date verzonden",
+  uitgenodigd: "Wacht op reactie",
+};
+
+const STATUS_CLASS: Record<InviteStatus, string> = {
+  aangemaakt: "bg-linen text-text-muted",
+  save_the_date: "bg-blush-light text-rose-dark",
+  uitgenodigd: "bg-gold-light/40 text-text-light",
+};
+
+const VIA_LABEL: Record<Via, string> = { whatsapp: "WhatsApp", email: "e-mail" };
+
+const getRsvp = (inv: Invitation) =>
+  Array.isArray(inv.rsvps) ? inv.rsvps[0] || null : inv.rsvps || null;
+
+// Wat de WhatsApp/Email-knop nu verstuurt; null = niets meer te versturen (knoppen verborgen)
+function volgendeStap(inv: Invitation): Stap | null {
+  if (getRsvp(inv)) return null;
+  if (inv.invite_status === "aangemaakt") return "save_the_date";
+  if (inv.invite_status === "save_the_date") return "uitgenodigd";
+  return null;
+}
+
+function formatDatum(iso: string) {
+  return new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+}
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
+
+// Opmaak van de e-mail; de inhoud verschilt per stap (save the date of uitnodiging)
+function emailHtml(o: { name: string; alineas: string[]; knopTekst: string; knopUrl: string; afsluiting: string }) {
+  const p = (t: string) => `<p style="line-height: 1.7; color: #5a4e42;">\n      ${t}\n    </p>`;
+  return `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #3d3229;">
+  <div style="text-align: center; padding: 40px 20px; background: linear-gradient(to bottom, #f5efe6, #fdfbf7); border-radius: 16px 16px 0 0;">
+    <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #c4967a; margin: 0;">Wij gaan trouwen</p>
+    <h1 style="font-size: 36px; font-weight: 300; margin: 16px 0 8px; color: #3d3229;">Jorrit &amp; Renee</h1>
+    <p style="font-size: 14px; color: #8a7e72; letter-spacing: 2px;">2 JULI 2027</p>
+  </div>
+
+  <div style="padding: 32px 24px; background: #ffffff; border: 1px solid #e5d5b0; border-top: none;">
+    <p style="font-size: 18px; margin-bottom: 8px;">Beste ${o.name},</p>
+
+    ${o.alineas.map(p).join("\n\n    ")}
+
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${o.knopUrl}" style="display: inline-block; padding: 14px 36px; background-color: #c4967a; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-family: sans-serif;">
+        ${o.knopTekst}
+      </a>
+    </div>
+
+    <p style="font-size: 13px; color: #b5a99a; text-align: center;">
+      Of kopieer deze link in je browser:<br/>
+      <a href="${o.knopUrl}" style="color: #c4967a; word-break: break-all;">${o.knopUrl}</a>
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e5d5b0; margin: 32px 0;" />
+
+    ${p(o.afsluiting)}
+
+    ${p("Liefs,<br/>\n      <strong>Jorrit &amp; Renee</strong>")}
+  </div>
+
+  <div style="text-align: center; padding: 20px; background: #f5efe6; border-radius: 0 0 16px 16px; border: 1px solid #e5d5b0; border-top: none;">
+    <p style="font-size: 12px; color: #b5a99a; margin: 0;">J &amp; R — 02.07.2027</p>
+  </div>
+</div>`;
+}
 
 // Zet elk nummer om naar internationaal formaat (E.164), voor alle landen:
 // "06-12345678", "+31 (0)6 1234 5678", "+31 06 12345678" → "+31612345678",
@@ -49,7 +128,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [qrModal, setQrModal] = useState<{ qr: string; url: string; name: string } | null>(null);
-  const [emailModal, setEmailModal] = useState<{ to: string; name: string } | null>(null);
+  const [emailModal, setEmailModal] = useState<{ inv: Invitation; stap: Stap } | null>(null);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [emailSending, setEmailSending] = useState(false);
@@ -95,64 +174,55 @@ export default function AdminDashboard() {
     fetchInvitations();
   }
 
-  function handleOpenEmail({ email, name, token, type, max_guests }: Invitation) {
-    if (!email) return;
-    const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
-    const u = uitnodigingTeksten(max_guests, type);
-    const typeTekst = type === "dag" ? "de hele dag" : "het avondfeest";
-    const uitnodigingHtml = u.uitnodiging
-      .replace("2 juli 2027", "<strong>2 juli 2027</strong>")
-      .replace(typeTekst, `<strong>${typeTekst}</strong>`);
+  // Zet de status één stap verder na het versturen van een save the date of uitnodiging
+  async function markSent(inv: Invitation, via: Via, stap: Stap) {
+    const now = new Date().toISOString();
+    await supabase.from("invitations").update(
+      stap === "save_the_date"
+        ? { invite_status: "save_the_date", save_the_date_at: now, save_the_date_via: via }
+        : { invite_status: "uitgenodigd", invited_at: now, invited_via: via }
+    ).eq("id", inv.id);
+    fetchInvitations();
+  }
 
-    setEmailSubject(u.onderwerp);
-    setEmailBody(`<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #3d3229;">
-  <div style="text-align: center; padding: 40px 20px; background: linear-gradient(to bottom, #f5efe6, #fdfbf7); border-radius: 16px 16px 0 0;">
-    <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #c4967a; margin: 0;">Wij gaan trouwen</p>
-    <h1 style="font-size: 36px; font-weight: 300; margin: 16px 0 8px; color: #3d3229;">Jorrit &amp; Renee</h1>
-    <p style="font-size: 14px; color: #8a7e72; letter-spacing: 2px;">2 JULI 2027</p>
-  </div>
+  function handleOpenEmail(inv: Invitation) {
+    const stap = volgendeStap(inv);
+    if (!inv.email || !stap) return;
+    const { name, token, type, max_guests } = inv;
 
-  <div style="padding: 32px 24px; background: #ffffff; border: 1px solid #e5d5b0; border-top: none;">
-    <p style="font-size: 18px; margin-bottom: 8px;">Beste ${name},</p>
-
-    <p style="line-height: 1.7; color: #5a4e42;">
-      ${uitnodigingHtml}
-    </p>
-
-    <p style="line-height: 1.7; color: #5a4e42;">
-      ${u.verzoekMail}
-    </p>
-
-    <div style="text-align: center; margin: 32px 0;">
-      <a href="${rsvpUrl}" style="display: inline-block; padding: 14px 36px; background-color: #c4967a; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-family: sans-serif;">
-        Aanmelden
-      </a>
-    </div>
-
-    <p style="font-size: 13px; color: #b5a99a; text-align: center;">
-      Of kopieer deze link in je browser:<br/>
-      <a href="${rsvpUrl}" style="color: #c4967a; word-break: break-all;">${rsvpUrl}</a>
-    </p>
-
-    <hr style="border: none; border-top: 1px solid #e5d5b0; margin: 32px 0;" />
-
-    <p style="line-height: 1.7; color: #5a4e42;">
-      ${u.afsluiting}
-    </p>
-
-    <p style="line-height: 1.7; color: #5a4e42;">
-      Liefs,<br/>
-      <strong>Jorrit &amp; Renee</strong>
-    </p>
-  </div>
-
-  <div style="text-align: center; padding: 20px; background: #f5efe6; border-radius: 0 0 16px 16px; border: 1px solid #e5d5b0; border-top: none;">
-    <p style="font-size: 12px; color: #b5a99a; margin: 0;">J &amp; R — 02.07.2027</p>
-  </div>
-</div>`);
+    if (stap === "save_the_date") {
+      const s = saveTheDateTeksten(max_guests);
+      setEmailSubject(s.onderwerp);
+      setEmailBody(emailHtml({
+        name,
+        alineas: [
+          "Wij gaan trouwen! Save the date: <strong>2 juli 2027</strong>.",
+          `${s.agenda} De officiële uitnodiging met alle details volgt later.`,
+        ],
+        knopTekst: "Bekijk de website",
+        knopUrl: BASE_URL || "https://jorritenrenee.nl",
+        afsluiting: s.afsluiting,
+      }));
+    } else {
+      const u = uitnodigingTeksten(max_guests, type);
+      const typeTekst = type === "dag" ? "de hele dag" : "het avondfeest";
+      setEmailSubject(u.onderwerp);
+      setEmailBody(emailHtml({
+        name,
+        alineas: [
+          u.uitnodiging
+            .replace("2 juli 2027", "<strong>2 juli 2027</strong>")
+            .replace(typeTekst, `<strong>${typeTekst}</strong>`),
+          u.verzoekMail,
+        ],
+        knopTekst: "Aanmelden",
+        knopUrl: `${BASE_URL}/rsvp?t=${token}`,
+        afsluiting: u.afsluiting,
+      }));
+    }
     setEmailSent(false);
     setEmailError("");
-    setEmailModal({ to: email, name });
+    setEmailModal({ inv, stap });
   }
 
   async function handleSendEmail() {
@@ -171,7 +241,7 @@ export default function AdminDashboard() {
             Authorization: `Bearer ${session?.access_token}`,
           },
           body: JSON.stringify({
-            to: emailModal.to,
+            to: emailModal.inv.email,
             subject: emailSubject,
             body: emailBody,
           }),
@@ -184,6 +254,7 @@ export default function AdminDashboard() {
       }
 
       setEmailSent(true);
+      await markSent(emailModal.inv, "email", emailModal.stap);
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : "Er ging iets mis");
     } finally {
@@ -198,12 +269,17 @@ export default function AdminDashboard() {
     if (editInv.phone?.trim() && !phone) { setEditError(PHONE_ERROR); return; }
     setEditSaving(true);
     setEditError("");
+    // Status terugzetten wist de verzendgegevens van de latere stappen
+    const status = editInv.invite_status;
     const { error } = await supabase.from("invitations").update({
       name: editInv.name,
       type: editInv.type,
       email: editInv.email || null,
       phone,
       max_guests: editInv.max_guests,
+      invite_status: status,
+      ...(status === "aangemaakt" && { save_the_date_at: null, save_the_date_via: null }),
+      ...(status !== "uitgenodigd" && { invited_at: null, invited_via: null }),
     }).eq("id", editInv.id);
     setEditSaving(false);
     if (error) {
@@ -214,10 +290,13 @@ export default function AdminDashboard() {
     fetchInvitations();
   }
 
-  function handleWhatsApp({ token, name, type, phone, max_guests }: Invitation) {
+  function handleWhatsApp(inv: Invitation) {
+    const stap = volgendeStap(inv);
+    if (!stap) return;
+    const { token, name, type, phone, max_guests } = inv;
     const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
     const u = uitnodigingTeksten(max_guests, type);
-    const text = FASE === "save-the-date"
+    const text = stap === "save_the_date"
       ? saveTheDateBericht(name, max_guests)
       : `Beste ${name},\n\n` +
         `Wij gaan trouwen! 💍 ${u.uitnodiging}\n\n` +
@@ -229,6 +308,7 @@ export default function AdminDashboard() {
     const params = new URLSearchParams({ text });
     if (number) params.set("phone", number);
     window.open(`https://api.whatsapp.com/send?${params.toString()}`, "_blank", "noopener");
+    markSent(inv, "whatsapp", stap);
   }
 
   async function handleShowQr(token: string, name: string) {
@@ -242,8 +322,11 @@ export default function AdminDashboard() {
 
   const dagInvitations = invitations.filter((i) => i.type === "dag");
   const avondInvitations = invitations.filter((i) => i.type === "avond");
-  const getRsvp = (inv: Invitation) =>
-    Array.isArray(inv.rsvps) ? inv.rsvps[0] || null : inv.rsvps || null;
+  const zonderReactie = invitations.filter((i) => !getRsvp(i));
+  const statusTelling = (Object.keys(STATUS_LABEL) as InviteStatus[]).map((s) => ({
+    status: s,
+    aantal: zonderReactie.filter((i) => i.invite_status === s).length,
+  }));
 
   const stats = {
     total: invitations.length,
@@ -294,6 +377,15 @@ export default function AdminDashboard() {
               <div className="font-serif text-3xl text-text">{stat.value}</div>
               <div className="text-[10px] text-text-muted uppercase tracking-wider font-sans mt-1">{stat.label}</div>
             </motion.div>
+          ))}
+        </div>
+
+        {/* Verzendstatus (gasten die nog niet gereageerd hebben) */}
+        <div className="flex flex-wrap gap-2 justify-center">
+          {statusTelling.map(({ status, aantal }) => (
+            <span key={status} className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium ${STATUS_CLASS[status]}`}>
+              {STATUS_LABEL[status]}: {aantal}
+            </span>
           ))}
         </div>
 
@@ -363,6 +455,12 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-linen/50">
                     {items.map((inv) => {
                       const rsvp = getRsvp(inv);
+                      const stap = volgendeStap(inv);
+                      const verzonden = inv.invite_status === "uitgenodigd"
+                        ? inv.invited_at && inv.invited_via && `${formatDatum(inv.invited_at)} · ${VIA_LABEL[inv.invited_via]}`
+                        : inv.invite_status === "save_the_date"
+                          ? inv.save_the_date_at && inv.save_the_date_via && `${formatDatum(inv.save_the_date_at)} · ${VIA_LABEL[inv.save_the_date_via]}`
+                          : null;
                       return (
                         <tr key={inv.id} className="hover:bg-cream/30 transition-colors">
                           <td className="px-6 py-4">
@@ -371,12 +469,18 @@ export default function AdminDashboard() {
                             {inv.phone && <div className="text-xs text-text-muted">{inv.phone}</div>}
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-                              rsvp ? (rsvp.attending ? "bg-sage-light/40 text-sage-dark" : "bg-blush/50 text-rose-dark")
-                                : "bg-gold-light/30 text-text-muted"
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                              rsvp ? (rsvp.attending ? "bg-sage-light/40 text-sage-dark" : "bg-red-50 text-red-500")
+                                : STATUS_CLASS[inv.invite_status]
                             }`}>
-                              {rsvp ? (rsvp.attending ? "Komt" : "Komt niet") : "Wacht op reactie"}
+                              {rsvp ? (rsvp.attending ? "Komt" : "Komt niet") : STATUS_LABEL[inv.invite_status]}
                             </span>
+                            {!rsvp && verzonden && <div className="text-[11px] text-text-muted mt-1">{verzonden}</div>}
+                            {stap && (
+                              <div className="text-[11px] text-text-muted mt-1">
+                                Volgende: {stap === "save_the_date" ? "save the date" : "uitnodiging"}
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-text-light">
                             {rsvp?.attending ? `${rsvp.guest_count} ${rsvp.guest_names ? `(${rsvp.guest_names})` : ""}` : "—"}
@@ -386,9 +490,11 @@ export default function AdminDashboard() {
                             <div className="flex gap-2">
                               <button onClick={() => handleShowQr(inv.token, inv.name)}
                                 className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">QR</button>
-                              <button onClick={() => handleWhatsApp(inv)}
-                                className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">WhatsApp</button>
-                              {inv.email && (
+                              {stap && (
+                                <button onClick={() => handleWhatsApp(inv)}
+                                  className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">WhatsApp</button>
+                              )}
+                              {stap && inv.email && (
                                 <button onClick={() => handleOpenEmail(inv)}
                                   className="px-3 py-1.5 text-xs bg-cream border border-gold-light/40 text-text rounded-lg hover:bg-gold-light/20 transition-colors">Email</button>
                               )}
@@ -470,6 +576,18 @@ export default function AdminDashboard() {
                   <input type="number" min={1} max={10} value={editInv.max_guests}
                     onChange={(e) => setEditInv({ ...editInv, max_guests: Number(e.target.value) })} className={inputClass} />
                 </div>
+                <div>
+                  <label className="block text-sm text-text font-sans mb-1">Status</label>
+                  <select value={editInv.invite_status}
+                    onChange={(e) => setEditInv({ ...editInv, invite_status: e.target.value as InviteStatus })} className={inputClass}>
+                    {(Object.keys(STATUS_LABEL) as InviteStatus[]).map((s) => (
+                      <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                    ))}
+                  </select>
+                  {getRsvp(editInv) && (
+                    <p className="text-xs text-text-muted mt-1">Deze gast heeft al gereageerd; in het overzicht blijft Komt / Komt niet staan.</p>
+                  )}
+                </div>
 
                 {editError && <p className="text-red-500 text-sm text-center">{editError}</p>}
 
@@ -496,7 +614,9 @@ export default function AdminDashboard() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className="bg-bg-card rounded-3xl p-8 max-w-lg w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="font-serif text-xl text-text mb-1">E-mail versturen</h3>
-              <p className="text-sm text-text-muted font-sans mb-6">Naar: {emailModal.name} ({emailModal.to})</p>
+              <p className="text-sm text-text-muted font-sans mb-6">
+                {emailModal.stap === "save_the_date" ? "Save the date" : "Uitnodiging"} naar: {emailModal.inv.name} ({emailModal.inv.email})
+              </p>
 
               {emailSent ? (
                 <div className="text-center py-6">
