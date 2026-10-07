@@ -1,0 +1,16 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Jorrit en Renee//Save the date//NL
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:bruiloft-jorrit-renee-20270702@jorritenrenee.nl
+DTSTAMP:20261007T000000Z
+DTSTART;VALUE=DATE:20270702
+DTEND;VALUE=DATE:20270703
+SUMMARY:Bruiloft Jorrit & Renee
+DESCRIPTION:Save the date! De officiële uitnodiging volgt later. Meer info: jorritenrenee.nl
+URL:https://jorritenrenee.nl
+TRANSP:TRANSPARENT
+END:VEVENT
+END:VCALENDAR

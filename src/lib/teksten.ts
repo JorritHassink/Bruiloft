@@ -62,3 +62,20 @@ export const CONTACT = {
   tel: "+31620442904",
   whatsapp: "https://api.whatsapp.com/send?phone=31620442904",
 };
+
+// Welke boodschap de WhatsApp-knop verstuurt:
+// "save-the-date" = link naar de homepage, "uitnodiging" = persoonlijke RSVP-link
+export const FASE: "save-the-date" | "uitnodiging" = "save-the-date";
+
+export function saveTheDateBericht(name: string, maxGuests: number) {
+  const solo = isSolo(maxGuests);
+  return (
+    `Beste ${name},\n\n` +
+    `Wij gaan trouwen! 💍\n\n` +
+    `Save the date: *2 juli 2027*. ` +
+    (solo ? "Zet je de datum alvast in je agenda? " : "Zetten jullie de datum alvast in de agenda? ") +
+    `De officiële uitnodiging volgt later.\n\n` +
+    `https://jorritenrenee.nl\n\n` +
+    `Liefs, Jorrit & Renee`
+  );
+}

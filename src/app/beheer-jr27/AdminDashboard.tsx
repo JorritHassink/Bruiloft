@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import QRCode from "qrcode";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
-import { uitnodigingTeksten } from "@/lib/teksten";
+import { uitnodigingTeksten, saveTheDateBericht, FASE } from "@/lib/teksten";
 
 interface Rsvp {
   id: string;
@@ -217,11 +217,12 @@ export default function AdminDashboard() {
   function handleWhatsApp({ token, name, type, phone, max_guests }: Invitation) {
     const rsvpUrl = `${BASE_URL}/rsvp?t=${token}`;
     const u = uitnodigingTeksten(max_guests, type);
-    const text =
-      `Beste ${name},\n\n` +
-      `Wij gaan trouwen! 💍 ${u.uitnodiging}\n\n` +
-      `${u.verzoek}\n${rsvpUrl}\n\n` +
-      `Liefs, Jorrit & Renee`;
+    const text = FASE === "save-the-date"
+      ? saveTheDateBericht(name, max_guests)
+      : `Beste ${name},\n\n` +
+        `Wij gaan trouwen! 💍 ${u.uitnodiging}\n\n` +
+        `${u.verzoek}\n${rsvpUrl}\n\n` +
+        `Liefs, Jorrit & Renee`;
     // Ook oude, niet-omgezette nummers werken zo
     const number = phone ? normalizePhone(phone)?.slice(1) ?? "" : "";
     // Direct naar api.whatsapp.com: de redirect via wa.me verminkt emoji zoals 💍
