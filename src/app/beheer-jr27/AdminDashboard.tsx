@@ -372,7 +372,15 @@ export default function AdminDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Uitnodigingen", value: stats.total },
+            {
+              label: "Uitnodigingen",
+              value: stats.total,
+              details: [
+                `Dag: ${dagInvitations.length} · max ${stats.dagMax} gasten`,
+                `Avond: ${avondInvitations.length} · max ${stats.avondMax} gasten`,
+                `Totaal max ${stats.dagMax + stats.avondMax} gasten`,
+              ],
+            },
             { label: "Gereageerd", value: `${stats.responded}/${stats.total}` },
             { label: "Daggasten (komt / max)", value: `${stats.dag} / ${stats.dagMax}` },
             { label: "Avondgasten (komt / max)", value: `${stats.avond} / ${stats.avondMax}` },
@@ -381,6 +389,13 @@ export default function AdminDashboard() {
               className="bg-bg-card rounded-2xl border border-gold-light/30 p-5 text-center">
               <div className="font-serif text-3xl text-text">{stat.value}</div>
               <div className="text-[10px] text-text-muted uppercase tracking-wider font-sans mt-1">{stat.label}</div>
+              {"details" in stat && stat.details && (
+                <div className="mt-3 pt-3 border-t border-linen space-y-0.5 text-xs text-text-light font-sans">
+                  {stat.details.map((d, j) => (
+                    <div key={d} className={j === stat.details.length - 1 ? "font-medium text-text" : ""}>{d}</div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
