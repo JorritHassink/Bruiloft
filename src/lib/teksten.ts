@@ -81,7 +81,7 @@ export function saveTheDateBericht(name: string, maxGuests: number) {
     `Beste ${name},\n\n` +
     `Wij gaan trouwen op 2 juli 2027 💍\n\n` +
     `${s.vrijhouden} De officiële uitnodiging volgt later. Zie ook:\n` +
-    `https://jorritenrenee.nl\n\n` +
+    `https://jorritenrenee.nl/save-the-date\n\n` +
     `Liefs,\n\n` +
     `Jorrit & Renee`
   );
