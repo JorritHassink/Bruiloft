@@ -49,7 +49,7 @@ Beste ${e},
 Wij gaan trouwen op 2 juli 2027 💍
 
 ${r.vrijhouden} De offici\xeble uitnodiging volgt later. Zie ook:
-https://jorritenrenee.nl
+https://jorritenrenee.nl/save-the-date
 
 Liefs,
 
