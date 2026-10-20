@@ -70,16 +70,17 @@ export function saveTheDateTeksten(maxGuests: number) {
     onderwerp: "Save the date! — Bruiloft Jorrit & Renee",
     agenda: solo ? "Zet je de datum alvast in je agenda?" : "Zetten jullie de datum alvast in de agenda?",
     afsluiting: `We kijken ernaar uit om deze bijzondere dag met ${solo ? "je" : "jullie"} te vieren!`,
+    vrijhouden: solo ? "Houd je deze datum alvast vrij?" : "Houden jullie deze datum alvast vrij?",
   };
 }
 
 export function saveTheDateBericht(name: string, maxGuests: number) {
   const s = saveTheDateTeksten(maxGuests);
   return (
+    `📣 *Reminder – Save the date*\n\n` +
     `Beste ${name},\n\n` +
-    `Wij gaan trouwen! 💍\n\n` +
-    `Save the date: *2 juli 2027*. ${s.agenda} ` +
-    `De officiële uitnodiging volgt later.\n\n` +
+    `Wij gaan trouwen op *2 juli 2027*.\n` +
+    `${s.vrijhouden} De officiële uitnodiging volgt later.\n\n` +
     `https://jorritenrenee.nl\n\n` +
     `Liefs, Jorrit & Renee`
   );
