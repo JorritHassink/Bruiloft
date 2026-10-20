@@ -79,9 +79,10 @@ export function saveTheDateBericht(name: string, maxGuests: number) {
   return (
     `📣 *Reminder – Save the date*\n\n` +
     `Beste ${name},\n\n` +
-    `Wij gaan trouwen op *2 juli 2027*.\n` +
-    `${s.vrijhouden} De officiële uitnodiging volgt later.\n\n` +
+    `Wij gaan trouwen op 2 juli 2027 💍\n\n` +
+    `${s.vrijhouden} De officiële uitnodiging volgt later. Zie ook:\n` +
     `https://jorritenrenee.nl\n\n` +
-    `Liefs, Jorrit & Renee`
+    `Liefs,\n\n` +
+    `Jorrit & Renee`
   );
 }

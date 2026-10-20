@@ -301,7 +301,7 @@ export default function AdminDashboard() {
       : `Beste ${name},\n\n` +
         `Wij gaan trouwen! 💍 ${u.uitnodiging}\n\n` +
         `${u.verzoek}\n${rsvpUrl}\n\n` +
-        `Liefs, Jorrit & Renee`;
+        `Liefs,\nJorrit & Renee`;
     // Ook oude, niet-omgezette nummers werken zo
     const number = phone ? normalizePhone(phone)?.slice(1) ?? "" : "";
     // Direct naar api.whatsapp.com: de redirect via wa.me verminkt emoji zoals 💍
