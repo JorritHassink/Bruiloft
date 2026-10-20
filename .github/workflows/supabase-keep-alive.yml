@@ -1,0 +1,33 @@
+# Houdt het gratis Supabase-project actief: zonder verkeer pauzeert Supabase het na ~7 dagen.
+# Roept elke 3 dagen een database-functie aan. Mislukt de aanroep (bijv. project toch gepauzeerd),
+# dan faalt de workflow en stuurt GitHub een e-mail.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write # voor gh-workflow-keepalive
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://cotjiedydvyaerlrjske.supabase.co
+      # Publieke anon key (staat ook in de website zelf); mag alleen de gast-RPC's aanroepen
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvdGppZWR5ZHZ5YWVybHJqc2tlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTYzMzQsImV4cCI6MjA5MTE3MjMzNH0.OUoIU9w1EaZ9KEzRmtlF7qEhSF4D0et7ihcHXic55zc
+    steps:
+      - name: Database aanroepen
+        run: |
+          status=$(curl -s -o response.txt -w "%{http_code}" --retry 3 --retry-delay 10 \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/get_invitation" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"p_token":"keep-alive"}')
+          echo "HTTP $status: $(cat response.txt)"
+          test "$status" = "200"
+
+      # GitHub zet geplande workflows uit na 60 dagen zonder activiteit in de repo; dit voorkomt dat
+      - uses: liskin/gh-workflow-keepalive@v1
