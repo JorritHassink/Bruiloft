@@ -46,9 +46,11 @@ ${m}`}({domain:b.host,address:v,statement:y,uri:b.href,version:"1",chainId:_,non
 
 Beste ${e},
 
-Wij gaan trouwen op *2 juli 2027*.
-${r.vrijhouden} De offici\xeble uitnodiging volgt later.
+Wij gaan trouwen op 2 juli 2027 💍
 
+${r.vrijhouden} De offici\xeble uitnodiging volgt later. Zie ook:
 https://jorritenrenee.nl
 
-Liefs, Jorrit & Renee`},"saveTheDateTeksten",0,r0,"uitnodigingTeksten",0,function(e,t){let r=rQ(e),s="dag"===t?"de hele dag":"het avondfeest";return r?{onderwerp:"Je bent uitgenodigd! — Bruiloft Jorrit & Renee",uitnodiging:`Met grote vreugde nodigen wij je uit voor onze bruiloft op 2 juli 2027. Je bent van harte welkom voor ${s}.`,verzoek:"Laat je via deze link weten of je erbij kunt zijn?",verzoekMail:"Wij zouden het heel fijn vinden als je wilt laten weten of je erbij kunt zijn. Dit kan eenvoudig via de onderstaande knop.",afsluiting:"We kijken er ontzettend naar uit om deze bijzondere dag met je te delen!"}:{onderwerp:"Jullie zijn uitgenodigd! — Bruiloft Jorrit & Renee",uitnodiging:`Met grote vreugde nodigen wij jullie uit voor onze bruiloft op 2 juli 2027. Jullie zijn van harte welkom voor ${s}.`,verzoek:"Laten jullie via deze link weten of jullie erbij kunnen zijn?",verzoekMail:"Wij zouden het heel fijn vinden als jullie willen laten weten of jullie erbij kunnen zijn. Dit kan eenvoudig via de onderstaande knop.",afsluiting:"We kijken er ontzettend naar uit om deze bijzondere dag met jullie te delen!"}}],33681)}]);
+Liefs,
+
+Jorrit & Renee`},"saveTheDateTeksten",0,r0,"uitnodigingTeksten",0,function(e,t){let r=rQ(e),s="dag"===t?"de hele dag":"het avondfeest";return r?{onderwerp:"Je bent uitgenodigd! — Bruiloft Jorrit & Renee",uitnodiging:`Met grote vreugde nodigen wij je uit voor onze bruiloft op 2 juli 2027. Je bent van harte welkom voor ${s}.`,verzoek:"Laat je via deze link weten of je erbij kunt zijn?",verzoekMail:"Wij zouden het heel fijn vinden als je wilt laten weten of je erbij kunt zijn. Dit kan eenvoudig via de onderstaande knop.",afsluiting:"We kijken er ontzettend naar uit om deze bijzondere dag met je te delen!"}:{onderwerp:"Jullie zijn uitgenodigd! — Bruiloft Jorrit & Renee",uitnodiging:`Met grote vreugde nodigen wij jullie uit voor onze bruiloft op 2 juli 2027. Jullie zijn van harte welkom voor ${s}.`,verzoek:"Laten jullie via deze link weten of jullie erbij kunnen zijn?",verzoekMail:"Wij zouden het heel fijn vinden als jullie willen laten weten of jullie erbij kunnen zijn. Dit kan eenvoudig via de onderstaande knop.",afsluiting:"We kijken er ontzettend naar uit om deze bijzondere dag met jullie te delen!"}}],33681)}]);
